@@ -1,11 +1,10 @@
 import { Router } from "express";
-import { supabase } from "../config/supabase.js";
-
+import { supabaseAdmin } from "../config/supabase.js";
 const router = Router();
 
 router.get("/", async (_req, res) => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from("knowledge_items")
       .select("id")
       .limit(1);

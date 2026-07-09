@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
@@ -14,15 +13,21 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@google/genai": "^2.10.0",
+    "@mozilla/readability": "^0.6.0",
     "@supabase/supabase-js": "^2.110.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "jsdom": "^29.1.1",
+    "sanitize-html": "^2.17.5"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/jsdom": "^28.0.3",
     "@types/node": "^26.1.0",
+    "@types/sanitize-html": "^2.16.1",
     "tsx": "^4.23.0",
     "typescript": "^6.0.3"
   }

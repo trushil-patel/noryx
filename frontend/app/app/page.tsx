@@ -1,6 +1,173 @@
+// "use client";
+
+// import Link from "next/link";
+// import { motion } from "framer-motion";
+// import {
+//   BookmarkCheck,
+//   Sparkles,
+//   TrendingUp,
+//   Zap,
+//   ArrowUpRight,
+//   Bookmark,
+//   Tag,
+//   Link as LinkIcon,
+//   Search,
+// } from "lucide-react";
+
+// import { KnowledgeCard } from "@/components/dashboard/knowledge-card";
+// import { knowledgeItems, activityFeed } from "@/lib/mock-data";
+// import { Button } from "@/components/ui/button";
+
+// const stats = [
+//   { label: "Saved this week", value: "48", trend: "+22%", icon: BookmarkCheck },
+//   { label: "AI summaries", value: "312", trend: "+18%", icon: Sparkles },
+//   { label: "Insights extracted", value: "1,204", trend: "+9%", icon: TrendingUp },
+//   { label: "Learning streak", value: "14d", trend: "New PR", icon: Zap },
+// ];
+
+// const activityIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+//   sparkles: Sparkles,
+//   bookmark: Bookmark,
+//   tag: Tag,
+//   link: LinkIcon,
+//   search: Search,
+// };
+
+// export default function LibraryPage() {
+//   return (
+//     <div className="mx-auto max-w-7xl px-4 pb-24 pt-8 lg:px-8">
+//       <motion.div
+//         initial={{ opacity: 0, y: 10 }}
+//         animate={{ opacity: 1, y: 0 }}
+//         transition={{ duration: 0.4 }}
+//         className="flex flex-wrap items-end justify-between gap-4"
+//       >
+//         <div>
+//           <p className="text-[13px] text-muted-foreground">Welcome back, Sam</p>
+//           <h1 className="mt-1 text-3xl font-semibold tracking-tight text-balance">
+//             Your knowledge, organized.
+//           </h1>
+//         </div>
+//         <Link href="/app/capture">
+//           <Button className="rounded-full">
+//             <Sparkles className="h-4 w-4" /> Capture new link
+//           </Button>
+//         </Link>
+//       </motion.div>
+
+//       <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-4">
+//         {stats.map((s, i) => (
+//           <motion.div
+//             key={s.label}
+//             initial={{ opacity: 0, y: 8 }}
+//             animate={{ opacity: 1, y: 0 }}
+//             transition={{ delay: 0.05 * i, duration: 0.3 }}
+//             className="rounded-2xl border border-border bg-surface p-4"
+//           >
+//             <div className="flex items-center justify-between">
+//               <div className="grid h-8 w-8 place-items-center rounded-lg bg-accent-soft text-accent">
+//                 <s.icon className="h-4 w-4" />
+//               </div>
+//               <span className="text-[11px] font-medium text-emerald-600">{s.trend}</span>
+//             </div>
+//             <div className="mt-4 text-2xl font-semibold tracking-tight">{s.value}</div>
+//             <div className="text-[12px] text-muted-foreground">{s.label}</div>
+//           </motion.div>
+//         ))}
+//       </div>
+
+//       <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_320px]">
+//         <section>
+//           <div className="mb-4 flex items-end justify-between">
+//             <div>
+//               <h2 className="text-lg font-semibold tracking-tight">Recent knowledge</h2>
+//               <p className="text-[13px] text-muted-foreground">
+//                 Automatically summarized by Memora AI
+//               </p>
+//             </div>
+//             <div className="flex items-center gap-1 rounded-full border border-border bg-surface p-1 text-[12px]">
+//               {["All", "YouTube", "X", "Articles"].map((f, i) => (
+//                 <button
+//                   key={f}
+//                   className={`rounded-full px-3 py-1 transition ${i === 0 ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+//                 >
+//                   {f}
+//                 </button>
+//               ))}
+//             </div>
+//           </div>
+
+//           <div className="grid gap-4 sm:grid-cols-2">
+//             {knowledgeItems.map((item, i) => (
+//               <KnowledgeCard key={item.id} item={item} index={i} />
+//             ))}
+//           </div>
+//         </section>
+
+//         <aside className="space-y-6">
+//           <div className="rounded-2xl border border-border bg-surface p-5">
+//             <h3 className="text-sm font-semibold tracking-tight">Quick actions</h3>
+//             <div className="mt-3 flex flex-col gap-1.5">
+//               {[
+//                 { label: "Capture from clipboard", icon: LinkIcon, to: "/app/capture" },
+//                 { label: "Ask your library", icon: Sparkles, to: "/app/search" },
+//                 { label: "Weekly digest", icon: TrendingUp, to: "/app/insights" },
+//               ].map((a) => (
+//                 <Link
+//                   key={a.label}
+//                   href={a.to}
+//                   className="group flex items-center gap-3 rounded-lg p-2.5 text-[13px] hover:bg-muted"
+//                 >
+//                   <a.icon className="h-4 w-4 text-muted-foreground group-hover:text-accent" />
+//                   <span className="flex-1">{a.label}</span>
+//                   <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100" />
+//                 </Link>
+//               ))}
+//             </div>
+//           </div>
+
+//           <div className="rounded-2xl border border-border bg-surface p-5">
+//             <h3 className="text-sm font-semibold tracking-tight">Recent activity</h3>
+//             <ol className="mt-4 space-y-4">
+//               {activityFeed.map((a, i) => {
+//                 const Icon = activityIcons[a.icon];
+//                 return (
+//                   <li key={i} className="flex items-start gap-3">
+//                     <div className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-muted">
+//                       <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+//                     </div>
+//                     <div className="min-w-0 flex-1">
+//                       <p className="text-[13px] leading-snug">{a.text}</p>
+//                       <p className="text-[11px] text-muted-foreground">{a.time}</p>
+//                     </div>
+//                   </li>
+//                 );
+//               })}
+//             </ol>
+//           </div>
+
+//           <div className="rounded-2xl border border-border bg-gradient-to-br from-accent-soft to-surface p-5">
+//             <Sparkles className="h-5 w-5 text-accent" />
+//             <h3 className="mt-3 text-sm font-semibold tracking-tight">Memora Pro</h3>
+//             <p className="mt-1 text-[12.5px] text-muted-foreground">
+//               Unlimited captures, deep insights, and priority AI. Free for 14 days.
+//             </p>
+//             <Button size="sm" className="mt-4 w-full rounded-full">
+//               Upgrade
+//             </Button>
+//           </div>
+//         </aside>
+//       </div>
+//     </div>
+//   );
+// }
+
+//temp code for api check
 "use client";
 
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   BookmarkCheck,
@@ -15,15 +182,9 @@ import {
 } from "lucide-react";
 
 import { KnowledgeCard } from "@/components/dashboard/knowledge-card";
-import { knowledgeItems, activityFeed } from "@/lib/mock-data";
+import { activityFeed, type KnowledgeItem } from "@/lib/mock-data";
+import { getKnowledgeItems } from "@/lib/api/knowledge";
 import { Button } from "@/components/ui/button";
-
-const stats = [
-  { label: "Saved this week", value: "48", trend: "+22%", icon: BookmarkCheck },
-  { label: "AI summaries", value: "312", trend: "+18%", icon: Sparkles },
-  { label: "Insights extracted", value: "1,204", trend: "+9%", icon: TrendingUp },
-  { label: "Learning streak", value: "14d", trend: "New PR", icon: Zap },
-];
 
 const activityIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   sparkles: Sparkles,
@@ -34,6 +195,61 @@ const activityIcons: Record<string, React.ComponentType<{ className?: string }>>
 };
 
 export default function LibraryPage() {
+  const searchParams = useSearchParams();
+  const capturedId = searchParams.get("captured");
+
+  const [items, setItems] = useState<KnowledgeItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadKnowledgeItems() {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const data = await getKnowledgeItems();
+        setItems(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load knowledge items");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadKnowledgeItems();
+  }, [capturedId]);
+
+  const stats = useMemo(
+    () => [
+      {
+        label: "Saved items",
+        value: String(items.length),
+        trend: "Live",
+        icon: BookmarkCheck,
+      },
+      {
+        label: "AI summaries",
+        value: String(items.filter((item) => item.summary).length),
+        trend: "Live",
+        icon: Sparkles,
+      },
+      {
+        label: "Tags created",
+        value: String(new Set(items.flatMap((item) => item.tags)).size),
+        trend: "Live",
+        icon: TrendingUp,
+      },
+      {
+        label: "Learning streak",
+        value: items.length > 0 ? "1d" : "0d",
+        trend: "New",
+        icon: Zap,
+      },
+    ],
+    [items],
+  );
+
   return (
     <div className="mx-auto max-w-7xl px-4 pb-24 pt-8 lg:px-8">
       <motion.div
@@ -43,11 +259,12 @@ export default function LibraryPage() {
         className="flex flex-wrap items-end justify-between gap-4"
       >
         <div>
-          <p className="text-[13px] text-muted-foreground">Welcome back, Sam</p>
+          <p className="text-[13px] text-muted-foreground">Welcome back</p>
           <h1 className="mt-1 text-3xl font-semibold tracking-tight text-balance">
             Your knowledge, organized.
           </h1>
         </div>
+
         <Link href="/app/capture">
           <Button className="rounded-full">
             <Sparkles className="h-4 w-4" /> Capture new link
@@ -70,6 +287,7 @@ export default function LibraryPage() {
               </div>
               <span className="text-[11px] font-medium text-emerald-600">{s.trend}</span>
             </div>
+
             <div className="mt-4 text-2xl font-semibold tracking-tight">{s.value}</div>
             <div className="text-[12px] text-muted-foreground">{s.label}</div>
           </motion.div>
@@ -82,14 +300,19 @@ export default function LibraryPage() {
             <div>
               <h2 className="text-lg font-semibold tracking-tight">Recent knowledge</h2>
               <p className="text-[13px] text-muted-foreground">
-                Automatically summarized by Memora AI
+                Real items from your Memora backend
               </p>
             </div>
+
             <div className="flex items-center gap-1 rounded-full border border-border bg-surface p-1 text-[12px]">
               {["All", "YouTube", "X", "Articles"].map((f, i) => (
                 <button
                   key={f}
-                  className={`rounded-full px-3 py-1 transition ${i === 0 ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                  className={`rounded-full px-3 py-1 transition ${
+                    i === 0
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
                 >
                   {f}
                 </button>
@@ -97,11 +320,39 @@ export default function LibraryPage() {
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            {knowledgeItems.map((item, i) => (
-              <KnowledgeCard key={item.id} item={item} index={i} />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {[1, 2, 3, 4].map((item) => (
+                <div
+                  key={item}
+                  className="h-[360px] animate-pulse rounded-2xl border border-border bg-surface"
+                />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-5 text-sm text-destructive">
+              {error}
+            </div>
+          ) : items.length === 0 ? (
+            <div className="rounded-2xl border border-border bg-surface p-8 text-center">
+              <Sparkles className="mx-auto h-8 w-8 text-muted-foreground" />
+              <h3 className="mt-4 text-base font-semibold tracking-tight">
+                No knowledge items yet
+              </h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Capture your first link to see it here.
+              </p>
+              <Link href="/app/capture">
+                <Button className="mt-5 rounded-full">Capture new link</Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {items.map((item, i) => (
+                <KnowledgeCard key={item.id} item={item} index={i} />
+              ))}
+            </div>
+          )}
         </section>
 
         <aside className="space-y-6">
@@ -131,6 +382,7 @@ export default function LibraryPage() {
             <ol className="mt-4 space-y-4">
               {activityFeed.map((a, i) => {
                 const Icon = activityIcons[a.icon];
+
                 return (
                   <li key={i} className="flex items-start gap-3">
                     <div className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-muted">
@@ -161,3 +413,87 @@ export default function LibraryPage() {
     </div>
   );
 }
+
+// temp code got backend check
+// import Link from "next/link";
+// import { redirect } from "next/navigation";
+// import { getCurrentUser } from "@/lib/auth/get-current-user";
+// import { BackendAuthTest } from "@/components/auth/backend-auth-test";
+
+// export default async function AppPage() {
+//   const user = await getCurrentUser();
+
+//   if (!user) {
+//     redirect("/login");
+//   }
+
+//   return (
+//     <main className="flex min-h-screen items-center justify-center bg-background px-6">
+//       <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-sm">
+//         <p className="text-sm text-muted-foreground">Logged in as</p>
+
+//         <h1 className="mt-2 text-xl font-semibold tracking-tight">
+//           {user.email}
+//         </h1>
+
+//         <div className="mt-6 rounded-xl bg-muted p-4 text-sm">
+//           <p className="font-medium">Session verified successfully.</p>
+//           <p className="mt-1 text-muted-foreground">
+//             Frontend Supabase auth is now working.
+//           </p>
+//         </div>
+
+//         <BackendAuthTest />
+
+//         <Link
+//           href="/logout"
+//           className="mt-6 inline-flex rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+//         >
+//           Logout
+//         </Link>
+//       </div>
+//     </main>
+//   );
+// }
+
+
+
+
+//temporary code for cheking supabase
+// import Link from "next/link";
+// import { redirect } from "next/navigation";
+// import { getCurrentUser } from "@/lib/auth/get-current-user";
+
+// export default async function AppPage() {
+//   const user = await getCurrentUser();
+
+//   if (!user) {
+//     redirect("/login");
+//   }
+
+//   return (
+//     <main className="flex min-h-screen items-center justify-center bg-background px-6">
+//       <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-sm">
+//         <p className="text-sm text-muted-foreground">Logged in as</p>
+
+//         <h1 className="mt-2 text-xl font-semibold tracking-tight">
+//           {user.email}
+//         </h1>
+
+//         <div className="mt-6 rounded-xl bg-muted p-4 text-sm">
+//           <p className="font-medium">Session verified successfully.</p>
+//           <p className="mt-1 text-muted-foreground">
+//             Frontend Supabase auth is now working.
+//           </p>
+//         </div>
+
+//         <Link
+//           href="/logout"
+//           className="mt-6 inline-flex rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+//         >
+//           Logout
+//         </Link>
+//       </div>
+//     </main>
+//   );
+// }

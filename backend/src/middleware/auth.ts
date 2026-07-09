@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { supabase } from "../config/supabase.js";
-
+import { supabaseAuth } from "../config/supabase.js";
 export interface AuthenticatedRequest extends Request {
   user: {
     id: string;
@@ -35,7 +34,7 @@ export async function authenticate(
     const {
       data: { user },
       error,
-    } = await supabase.auth.getUser(token);
+    } = await supabaseAuth.auth.getUser(token);
 
     if (error || !user) {
       return res.status(401).json({
