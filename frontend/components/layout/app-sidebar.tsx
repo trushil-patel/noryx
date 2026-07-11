@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -16,7 +17,7 @@ import {
   MessageCircle,
   Briefcase,
 } from "lucide-react";
-
+import { createSupabaseClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
 
@@ -40,10 +41,95 @@ const platforms = [
   { label: "X", icon: MessageCircle },
   { label: "LinkedIn", icon: Briefcase },
 ];
+type SidebarProfile = {
+  name: string;
+  email: string;
+  avatarUrl: string | null;
+};
 
+function metadataString(value: unknown): string | null {
+  return typeof value === "string" && value.trim()
+    ? value.trim()
+    : null;
+}
+
+function getInitials(name: string, email: string): string {
+  const source = name.trim() || email.split("@")[0] || "M";
+
+  return source
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("");
+}
 export function AppSidebar() {
   const pathname = usePathname();
+  const [profile, setProfile] = useState<SidebarProfile | null>(
+  null,
+);
 
+useEffect(() => {
+  const supabase = createSupabaseClient();
+  let mounted = true;
+
+  function updateProfile(
+    user:
+      | {
+          email?: string | null;
+          user_metadata?: Record<string, unknown>;
+        }
+      | null,
+  ) {
+    if (!mounted) return;
+
+    if (!user) {
+      setProfile(null);
+      return;
+    }
+
+    const metadata = user.user_metadata ?? {};
+
+    const email = user.email ?? "";
+
+    const name =
+      metadataString(metadata.full_name) ??
+      metadataString(metadata.name) ??
+      metadataString(metadata.display_name) ??
+      email.split("@")[0] ??
+      "Memora user";
+
+    const avatarUrl =
+      metadataString(metadata.avatar_url) ??
+      metadataString(metadata.picture);
+
+    setProfile({
+      name,
+      email,
+      avatarUrl,
+    });
+  }
+
+  async function loadUser() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    updateProfile(user);
+  }
+
+  void loadUser();
+
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((_event, session) => {
+    updateProfile(session?.user ?? null);
+  });
+
+  return () => {
+    mounted = false;
+    subscription.unsubscribe();
+  };
+}, []);
   const isActive = (to: string, exact = false) =>
     exact ? pathname === to : pathname === to || pathname.startsWith(to + "/");
 
@@ -122,23 +208,41 @@ export function AppSidebar() {
       </div>
 
       <div className="mt-auto rounded-xl border border-border bg-surface p-3">
-        <div className="flex items-center gap-2">
-          <div className="grid h-8 w-8 place-items-center rounded-full bg-accent-soft text-[11px] font-semibold text-accent">
-            SW
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-[12.5px] font-medium">Sam Weller</div>
-            <div className="truncate text-[11px] text-muted-foreground">Free plan</div>
-          </div>
-          <Link
-            href="/app/settings"
-            className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-            aria-label="Settings"
-          >
-            <Settings className="h-4 w-4" />
-          </Link>
-        </div>
+  <div className="flex items-center gap-2">
+    {profile?.avatarUrl ? (
+      <img
+        src={profile.avatarUrl}
+        alt={profile.name}
+        referrerPolicy="no-referrer"
+        className="h-8 w-8 shrink-0 rounded-full border border-border object-cover"
+      />
+    ) : (
+      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-accent-soft text-[11px] font-semibold text-accent">
+        {profile
+          ? getInitials(profile.name, profile.email)
+          : "M"}
       </div>
+    )}
+
+    <div className="min-w-0 flex-1">
+      <div className="truncate text-[12.5px] font-medium">
+        {profile?.name ?? "Loading..."}
+      </div>
+
+      <div className="truncate text-[11px] text-muted-foreground">
+        {profile?.email || "Free plan"}
+      </div>
+    </div>
+
+    <Link
+      href="/app/settings"
+      className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+      aria-label="Settings"
+    >
+      <Settings className="h-4 w-4" />
+    </Link>
+  </div>
+</div>
     </aside>
   );
 }

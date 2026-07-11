@@ -1,499 +1,1015 @@
-// "use client";
-
-// import Link from "next/link";
-// import { motion } from "framer-motion";
-// import {
-//   BookmarkCheck,
-//   Sparkles,
-//   TrendingUp,
-//   Zap,
-//   ArrowUpRight,
-//   Bookmark,
-//   Tag,
-//   Link as LinkIcon,
-//   Search,
-// } from "lucide-react";
-
-// import { KnowledgeCard } from "@/components/dashboard/knowledge-card";
-// import { knowledgeItems, activityFeed } from "@/lib/mock-data";
-// import { Button } from "@/components/ui/button";
-
-// const stats = [
-//   { label: "Saved this week", value: "48", trend: "+22%", icon: BookmarkCheck },
-//   { label: "AI summaries", value: "312", trend: "+18%", icon: Sparkles },
-//   { label: "Insights extracted", value: "1,204", trend: "+9%", icon: TrendingUp },
-//   { label: "Learning streak", value: "14d", trend: "New PR", icon: Zap },
-// ];
-
-// const activityIcons: Record<string, React.ComponentType<{ className?: string }>> = {
-//   sparkles: Sparkles,
-//   bookmark: Bookmark,
-//   tag: Tag,
-//   link: LinkIcon,
-//   search: Search,
-// };
-
-// export default function LibraryPage() {
-//   return (
-//     <div className="mx-auto max-w-7xl px-4 pb-24 pt-8 lg:px-8">
-//       <motion.div
-//         initial={{ opacity: 0, y: 10 }}
-//         animate={{ opacity: 1, y: 0 }}
-//         transition={{ duration: 0.4 }}
-//         className="flex flex-wrap items-end justify-between gap-4"
-//       >
-//         <div>
-//           <p className="text-[13px] text-muted-foreground">Welcome back, Sam</p>
-//           <h1 className="mt-1 text-3xl font-semibold tracking-tight text-balance">
-//             Your knowledge, organized.
-//           </h1>
-//         </div>
-//         <Link href="/app/capture">
-//           <Button className="rounded-full">
-//             <Sparkles className="h-4 w-4" /> Capture new link
-//           </Button>
-//         </Link>
-//       </motion.div>
-
-//       <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-4">
-//         {stats.map((s, i) => (
-//           <motion.div
-//             key={s.label}
-//             initial={{ opacity: 0, y: 8 }}
-//             animate={{ opacity: 1, y: 0 }}
-//             transition={{ delay: 0.05 * i, duration: 0.3 }}
-//             className="rounded-2xl border border-border bg-surface p-4"
-//           >
-//             <div className="flex items-center justify-between">
-//               <div className="grid h-8 w-8 place-items-center rounded-lg bg-accent-soft text-accent">
-//                 <s.icon className="h-4 w-4" />
-//               </div>
-//               <span className="text-[11px] font-medium text-emerald-600">{s.trend}</span>
-//             </div>
-//             <div className="mt-4 text-2xl font-semibold tracking-tight">{s.value}</div>
-//             <div className="text-[12px] text-muted-foreground">{s.label}</div>
-//           </motion.div>
-//         ))}
-//       </div>
-
-//       <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_320px]">
-//         <section>
-//           <div className="mb-4 flex items-end justify-between">
-//             <div>
-//               <h2 className="text-lg font-semibold tracking-tight">Recent knowledge</h2>
-//               <p className="text-[13px] text-muted-foreground">
-//                 Automatically summarized by Memora AI
-//               </p>
-//             </div>
-//             <div className="flex items-center gap-1 rounded-full border border-border bg-surface p-1 text-[12px]">
-//               {["All", "YouTube", "X", "Articles"].map((f, i) => (
-//                 <button
-//                   key={f}
-//                   className={`rounded-full px-3 py-1 transition ${i === 0 ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-//                 >
-//                   {f}
-//                 </button>
-//               ))}
-//             </div>
-//           </div>
-
-//           <div className="grid gap-4 sm:grid-cols-2">
-//             {knowledgeItems.map((item, i) => (
-//               <KnowledgeCard key={item.id} item={item} index={i} />
-//             ))}
-//           </div>
-//         </section>
-
-//         <aside className="space-y-6">
-//           <div className="rounded-2xl border border-border bg-surface p-5">
-//             <h3 className="text-sm font-semibold tracking-tight">Quick actions</h3>
-//             <div className="mt-3 flex flex-col gap-1.5">
-//               {[
-//                 { label: "Capture from clipboard", icon: LinkIcon, to: "/app/capture" },
-//                 { label: "Ask your library", icon: Sparkles, to: "/app/search" },
-//                 { label: "Weekly digest", icon: TrendingUp, to: "/app/insights" },
-//               ].map((a) => (
-//                 <Link
-//                   key={a.label}
-//                   href={a.to}
-//                   className="group flex items-center gap-3 rounded-lg p-2.5 text-[13px] hover:bg-muted"
-//                 >
-//                   <a.icon className="h-4 w-4 text-muted-foreground group-hover:text-accent" />
-//                   <span className="flex-1">{a.label}</span>
-//                   <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100" />
-//                 </Link>
-//               ))}
-//             </div>
-//           </div>
-
-//           <div className="rounded-2xl border border-border bg-surface p-5">
-//             <h3 className="text-sm font-semibold tracking-tight">Recent activity</h3>
-//             <ol className="mt-4 space-y-4">
-//               {activityFeed.map((a, i) => {
-//                 const Icon = activityIcons[a.icon];
-//                 return (
-//                   <li key={i} className="flex items-start gap-3">
-//                     <div className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-muted">
-//                       <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-//                     </div>
-//                     <div className="min-w-0 flex-1">
-//                       <p className="text-[13px] leading-snug">{a.text}</p>
-//                       <p className="text-[11px] text-muted-foreground">{a.time}</p>
-//                     </div>
-//                   </li>
-//                 );
-//               })}
-//             </ol>
-//           </div>
-
-//           <div className="rounded-2xl border border-border bg-gradient-to-br from-accent-soft to-surface p-5">
-//             <Sparkles className="h-5 w-5 text-accent" />
-//             <h3 className="mt-3 text-sm font-semibold tracking-tight">Memora Pro</h3>
-//             <p className="mt-1 text-[12.5px] text-muted-foreground">
-//               Unlimited captures, deep insights, and priority AI. Free for 14 days.
-//             </p>
-//             <Button size="sm" className="mt-4 w-full rounded-full">
-//               Upgrade
-//             </Button>
-//           </div>
-//         </aside>
-//       </div>
-//     </div>
-//   );
-// }
-
-//temp code for api check
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { motion } from "framer-motion";
 import {
-  BookmarkCheck,
-  Sparkles,
-  TrendingUp,
-  Zap,
-  ArrowUpRight,
+  Suspense,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { useSearchParams } from "next/navigation";
+import {
+  AnimatePresence,
+  LayoutGroup,
+  motion,
+} from "framer-motion";
+import {
+  AlertTriangle,
+  BookOpen,
   Bookmark,
-  Tag,
-  Link as LinkIcon,
+  BookmarkCheck,
+  ExternalLink,
+  Globe2,
+  Hash,
+  Loader2,
+  MessagesSquare,
+  RefreshCw,
   Search,
+  Shuffle,
+  Sparkles,
+  Tag,
+  Trash2,
+  Video,
+  Zap,
 } from "lucide-react";
 
-import { KnowledgeCard } from "@/components/dashboard/knowledge-card";
-import { activityFeed, type KnowledgeItem } from "@/lib/mock-data";
-import { getKnowledgeItems } from "@/lib/api/knowledge";
 import { Button } from "@/components/ui/button";
+import { createSupabaseClient } from "@/lib/supabase/client";
+import {
+  deleteKnowledgeItem,
+  getKnowledgeItems,
+} from "@/lib/api/knowledge";
+import type { KnowledgeItem } from "@/lib/mock-data";
+import { cn } from "@/lib/utils";
 
-const activityIcons: Record<string, React.ComponentType<{ className?: string }>> = {
-  sparkles: Sparkles,
-  bookmark: Bookmark,
-  tag: Tag,
-  link: LinkIcon,
-  search: Search,
-};
+const memoryColors = [
+  {
+    background:
+      "from-violet-500/18 via-fuchsia-500/8 to-transparent",
+    accent: "text-violet-500",
+  },
+  {
+    background:
+      "from-orange-400/18 via-amber-400/8 to-transparent",
+    accent: "text-orange-500",
+  },
+  {
+    background:
+      "from-emerald-400/16 via-teal-400/8 to-transparent",
+    accent: "text-emerald-500",
+  },
+  {
+    background:
+      "from-sky-400/18 via-cyan-400/8 to-transparent",
+    accent: "text-sky-500",
+  },
+  {
+    background:
+      "from-rose-400/16 via-pink-400/8 to-transparent",
+    accent: "text-rose-500",
+  },
+];
 
-export default function LibraryPage() {
+function LibraryPageContent() {
   const searchParams = useSearchParams();
   const capturedId = searchParams.get("captured");
 
   const [items, setItems] = useState<KnowledgeItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [deletingId, setDeletingId] = useState<
+    string | null
+  >(null);
   const [error, setError] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] =
+    useState("all");
 
   useEffect(() => {
+    let mounted = true;
+
     async function loadKnowledgeItems() {
+      const supabase = createSupabaseClient();
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const userId = session?.user.id;
+
+      const cacheKey = userId
+        ? `memora-library:${userId}`
+        : null;
+
+      let hasCache = false;
+
+      if (cacheKey) {
+        try {
+          const cachedValue =
+            sessionStorage.getItem(cacheKey);
+
+          if (cachedValue) {
+            const cachedItems = JSON.parse(
+              cachedValue,
+            ) as KnowledgeItem[];
+
+            if (
+              mounted &&
+              Array.isArray(cachedItems)
+            ) {
+              setItems(cachedItems);
+              setIsLoading(false);
+              setIsRefreshing(true);
+              hasCache = true;
+            }
+          }
+        } catch {
+          sessionStorage.removeItem(cacheKey);
+        }
+      }
+
       try {
-        setIsLoading(true);
+        if (!hasCache) {
+          setIsLoading(true);
+        }
+
         setError(null);
 
-        const data = await getKnowledgeItems();
-        setItems(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load knowledge items");
-      } finally {
+        const freshItems = await getKnowledgeItems();
+
+        if (!mounted) return;
+
+        setItems(freshItems);
         setIsLoading(false);
+
+        if (cacheKey) {
+          sessionStorage.setItem(
+            cacheKey,
+            JSON.stringify(freshItems),
+          );
+        }
+      } catch (loadError) {
+        if (!mounted) return;
+
+        if (!hasCache) {
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Failed to load knowledge items",
+          );
+        }
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+          setIsRefreshing(false);
+        }
       }
     }
 
-    loadKnowledgeItems();
+    void loadKnowledgeItems();
+
+    return () => {
+      mounted = false;
+    };
   }, [capturedId]);
 
-  const stats = useMemo(
-    () => [
+  const stats = useMemo(() => {
+    const summaries = items.filter(
+      (item) =>
+        item.summary &&
+        !item.summary.includes(
+          "AI summary will appear here",
+        ),
+    ).length;
+
+    const uniqueTags = new Set(
+      items.flatMap((item) => item.tags),
+    ).size;
+
+    return [
       {
         label: "Saved items",
-        value: String(items.length),
-        trend: "Live",
+        value: items.length,
+        suffix: "",
         icon: BookmarkCheck,
       },
       {
         label: "AI summaries",
-        value: String(items.filter((item) => item.summary).length),
-        trend: "Live",
+        value: summaries,
+        suffix: "",
         icon: Sparkles,
       },
       {
         label: "Tags created",
-        value: String(new Set(items.flatMap((item) => item.tags)).size),
-        trend: "Live",
-        icon: TrendingUp,
+        value: uniqueTags,
+        suffix: "",
+        icon: Hash,
       },
       {
         label: "Learning streak",
-        value: items.length > 0 ? "1d" : "0d",
-        trend: "New",
+        value: items.length > 0 ? 1 : 0,
+        suffix: "d",
         icon: Zap,
+      },
+    ];
+  }, [items]);
+
+  const filters = useMemo(
+    () => [
+      {
+        id: "all",
+        label: "Everything",
+        icon: Sparkles,
+        count: items.length,
+      },
+      {
+        id: "articles",
+        label: "Articles",
+        icon: BookOpen,
+        count: items.filter(
+          (item) =>
+            item.platform === "article" ||
+            item.platform === "blog",
+        ).length,
+      },
+      {
+        id: "videos",
+        label: "Videos",
+        icon: Video,
+        count: items.filter(
+          (item) => item.platform === "youtube",
+        ).length,
+      },
+      {
+        id: "social",
+        label: "Social",
+        icon: MessagesSquare,
+        count: items.filter((item) =>
+          [
+            "twitter",
+            "linkedin",
+            "instagram",
+            "reddit",
+          ].includes(item.platform),
+        ).length,
+      },
+      {
+        id: "tagged",
+        label: "Tagged",
+        icon: Tag,
+        count: items.filter(
+          (item) => item.tags.length > 0,
+        ).length,
       },
     ],
     [items],
   );
 
+  const filteredItems = useMemo(() => {
+    switch (activeFilter) {
+      case "articles":
+        return items.filter(
+          (item) =>
+            item.platform === "article" ||
+            item.platform === "blog",
+        );
+
+      case "videos":
+        return items.filter(
+          (item) => item.platform === "youtube",
+        );
+
+      case "social":
+        return items.filter((item) =>
+          [
+            "twitter",
+            "linkedin",
+            "instagram",
+            "reddit",
+          ].includes(item.platform),
+        );
+
+      case "tagged":
+        return items.filter(
+          (item) => item.tags.length > 0,
+        );
+
+      default:
+        return items;
+    }
+  }, [activeFilter, items]);
+
+  const activeFilterLabel =
+    filters.find(
+      (filter) => filter.id === activeFilter,
+    )?.label ?? "Everything";
+
+  async function handleDelete(item: KnowledgeItem) {
+    const confirmed = window.confirm(
+      `Delete "${item.title}"?\n\nThis action cannot be undone.`,
+    );
+
+    if (!confirmed || deletingId) {
+      return;
+    }
+
+    const previousItems = items;
+
+    try {
+      setDeletingId(item.id);
+      setError(null);
+
+      const nextItems = items.filter(
+        (current) => current.id !== item.id,
+      );
+
+      setItems(nextItems);
+      updateLibraryCaches(nextItems);
+
+      await deleteKnowledgeItem(item.id);
+    } catch (deleteError) {
+      setItems(previousItems);
+      updateLibraryCaches(previousItems);
+
+      setError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : "Unable to delete this memory.",
+      );
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   return (
-    <div className="mx-auto max-w-7xl px-4 pb-24 pt-8 lg:px-8">
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="flex flex-wrap items-end justify-between gap-4"
+    <div className="mx-auto max-w-[1600px] px-4 pb-24 pt-8 lg:px-8">
+      <motion.header
+        initial={{
+          opacity: 0,
+          y: 12,
+        }}
+        animate={{
+          opacity: 1,
+          y: 0,
+        }}
+        transition={{
+          duration: 0.35,
+        }}
+        className="flex flex-wrap items-end justify-between gap-5"
       >
         <div>
-          <p className="text-[13px] text-muted-foreground">Welcome back</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight text-balance">
+          <div className="flex items-center gap-2">
+            <p className="text-[13px] text-muted-foreground">
+              Welcome back
+            </p>
+
+            {isRefreshing ? (
+              <span className="flex items-center gap-1.5 rounded-full bg-muted px-2 py-1 text-[10px] text-muted-foreground">
+                <RefreshCw className="h-2.5 w-2.5 animate-spin" />
+                Syncing
+              </span>
+            ) : null}
+          </div>
+
+          <h1 className="mt-1 text-balance text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">
             Your knowledge, organized.
           </h1>
         </div>
 
         <Link href="/app/capture">
           <Button className="rounded-full">
-            <Sparkles className="h-4 w-4" /> Capture new link
+            <Sparkles className="h-4 w-4" />
+            Capture new link
           </Button>
         </Link>
-      </motion.div>
+      </motion.header>
+
+      {error ? (
+        <div
+          role="alert"
+          className="mt-5 flex items-start gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-[13px] text-destructive"
+        >
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+
+          <div className="flex-1">
+            {error}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            className="text-[11px] font-medium"
+          >
+            Dismiss
+          </button>
+        </div>
+      ) : null}
 
       <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-4">
-        {stats.map((s, i) => (
+        {stats.map((stat, index) => (
           <motion.div
-            key={s.label}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 * i, duration: 0.3 }}
+            key={stat.label}
+            initial={{
+              opacity: 0,
+              y: 8,
+              scale: 0.97,
+            }}
+            animate={{
+              opacity: 1,
+              y: 0,
+              scale: 1,
+            }}
+            transition={{
+              delay: index * 0.04,
+              duration: 0.25,
+            }}
+            whileHover={{
+              y: -3,
+              transition: {
+                duration: 0.18,
+              },
+            }}
             className="rounded-2xl border border-border bg-surface p-4"
           >
             <div className="flex items-center justify-between">
               <div className="grid h-8 w-8 place-items-center rounded-lg bg-accent-soft text-accent">
-                <s.icon className="h-4 w-4" />
+                <stat.icon className="h-4 w-4" />
               </div>
-              <span className="text-[11px] font-medium text-emerald-600">{s.trend}</span>
+
+              <span className="text-[10px] font-medium uppercase tracking-wider text-emerald-600">
+                Live
+              </span>
             </div>
 
-            <div className="mt-4 text-2xl font-semibold tracking-tight">{s.value}</div>
-            <div className="text-[12px] text-muted-foreground">{s.label}</div>
+            <div className="mt-4 text-2xl font-semibold tracking-tight tabular-nums">
+              <AnimatedNumber
+                value={stat.value}
+                suffix={stat.suffix}
+              />
+            </div>
+
+            <div className="text-[12px] text-muted-foreground">
+              {stat.label}
+            </div>
           </motion.div>
         ))}
       </div>
 
-      <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_320px]">
-        <section>
-          <div className="mb-4 flex items-end justify-between">
-            <div>
-              <h2 className="text-lg font-semibold tracking-tight">Recent knowledge</h2>
-              <p className="text-[13px] text-muted-foreground">
-                Real items from your Memora backend
-              </p>
+      <section className="mt-12 min-w-0">
+        <div className="mb-6 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="mb-2 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+              Your memory canvas
             </div>
 
-            <div className="flex items-center gap-1 rounded-full border border-border bg-surface p-1 text-[12px]">
-              {["All", "YouTube", "X", "Articles"].map((f, i) => (
+            <h2 className="text-2xl font-semibold tracking-[-0.03em]">
+              Things worth remembering.
+            </h2>
+
+            <p className="mt-1 text-[13px] text-muted-foreground">
+              Discover your saved knowledge by its most useful
+              categories.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {filters.map((filter) => {
+              const active =
+                activeFilter === filter.id;
+
+              return (
                 <button
-                  key={f}
-                  className={`rounded-full px-3 py-1 transition ${
-                    i === 0
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
+                  key={filter.id}
+                  type="button"
+                  onClick={() =>
+                    setActiveFilter(filter.id)
+                  }
+                  className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[11.5px] font-medium transition-all duration-300 ${
+                    active
+                      ? "bg-foreground text-background shadow-sm"
+                      : "bg-muted text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
                   }`}
                 >
-                  {f}
+                  <filter.icon className="h-3.5 w-3.5" />
+
+                  <span>{filter.label}</span>
+
+                  <span
+                    className={`rounded-full px-1.5 py-0.5 text-[9px] tabular-nums ${
+                      active
+                        ? "bg-background/15 text-background"
+                        : "bg-background text-muted-foreground"
+                    }`}
+                  >
+                    {filter.count}
+                  </span>
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
+        </div>
 
-          {isLoading ? (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {[1, 2, 3, 4].map((item) => (
-                <div
-                  key={item}
-                  className="h-[360px] animate-pulse rounded-2xl border border-border bg-surface"
-                />
-              ))}
-            </div>
-          ) : error ? (
-            <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-5 text-sm text-destructive">
-              {error}
-            </div>
-          ) : items.length === 0 ? (
-            <div className="rounded-2xl border border-border bg-surface p-8 text-center">
-              <Sparkles className="mx-auto h-8 w-8 text-muted-foreground" />
-              <h3 className="mt-4 text-base font-semibold tracking-tight">
-                No knowledge items yet
-              </h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Capture your first link to see it here.
-              </p>
-              <Link href="/app/capture">
-                <Button className="mt-5 rounded-full">Capture new link</Button>
-              </Link>
-            </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {items.map((item, i) => (
-                <KnowledgeCard key={item.id} item={item} index={i} />
-              ))}
-            </div>
-          )}
-        </section>
-
-        <aside className="space-y-6">
-          <div className="rounded-2xl border border-border bg-surface p-5">
-            <h3 className="text-sm font-semibold tracking-tight">Quick actions</h3>
-            <div className="mt-3 flex flex-col gap-1.5">
-              {[
-                { label: "Capture from clipboard", icon: LinkIcon, to: "/app/capture" },
-                { label: "Ask your library", icon: Sparkles, to: "/app/search" },
-                { label: "Weekly digest", icon: TrendingUp, to: "/app/insights" },
-              ].map((a) => (
-                <Link
-                  key={a.label}
-                  href={a.to}
-                  className="group flex items-center gap-3 rounded-lg p-2.5 text-[13px] hover:bg-muted"
-                >
-                  <a.icon className="h-4 w-4 text-muted-foreground group-hover:text-accent" />
-                  <span className="flex-1">{a.label}</span>
-                  <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100" />
-                </Link>
-              ))}
-            </div>
+        {isRefreshing ? (
+          <div className="mb-4 flex items-center gap-2 text-[11px] text-muted-foreground">
+            <RefreshCw className="h-3 w-3 animate-spin" />
+            Quietly refreshing your memories
           </div>
+        ) : null}
 
-          <div className="rounded-2xl border border-border bg-surface p-5">
-            <h3 className="text-sm font-semibold tracking-tight">Recent activity</h3>
-            <ol className="mt-4 space-y-4">
-              {activityFeed.map((a, i) => {
-                const Icon = activityIcons[a.icon];
+        {isLoading ? (
+          <MemoryCanvasLoading />
+        ) : !error && items.length === 0 ? (
+          <EmptyMemoryCanvas />
+        ) : filteredItems.length === 0 ? (
+          <motion.div
+            initial={{
+              opacity: 0,
+              scale: 0.98,
+            }}
+            animate={{
+              opacity: 1,
+              scale: 1,
+            }}
+            className="rounded-[32px] bg-muted/60 px-6 py-16 text-center"
+          >
+            <Search className="mx-auto h-6 w-6 text-muted-foreground" />
 
-                return (
-                  <li key={i} className="flex items-start gap-3">
-                    <div className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-muted">
-                      <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[13px] leading-snug">{a.text}</p>
-                      <p className="text-[11px] text-muted-foreground">{a.time}</p>
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
-          </div>
+            <h3 className="mt-4 text-base font-semibold">
+              Nothing here yet
+            </h3>
 
-          <div className="rounded-2xl border border-border bg-gradient-to-br from-accent-soft to-surface p-5">
-            <Sparkles className="h-5 w-5 text-accent" />
-            <h3 className="mt-3 text-sm font-semibold tracking-tight">Memora Pro</h3>
-            <p className="mt-1 text-[12.5px] text-muted-foreground">
-              Unlimited captures, deep insights, and priority AI. Free for 14 days.
+            <p className="mt-1 text-[13px] text-muted-foreground">
+              No memories found in {activeFilterLabel}.
             </p>
-            <Button size="sm" className="mt-4 w-full rounded-full">
-              Upgrade
-            </Button>
+
+            <button
+              type="button"
+              onClick={() =>
+                setActiveFilter("all")
+              }
+              className="mt-5 rounded-full bg-foreground px-4 py-2 text-[12px] font-medium text-background"
+            >
+              Show everything
+            </button>
+          </motion.div>
+        ) : (
+          <LayoutGroup>
+            <motion.div
+              layout
+              className="columns-1 gap-4 sm:columns-2 xl:columns-3 2xl:columns-4"
+            >
+              <AnimatePresence mode="popLayout">
+                {filteredItems.map(
+                  (item, index) => (
+                    <MemoryTile
+                      key={item.id}
+                      item={item}
+                      index={index}
+                      isDeleting={
+                        deletingId === item.id
+                      }
+                      onDelete={() =>
+                        void handleDelete(item)
+                      }
+                    />
+                  ),
+                )}
+              </AnimatePresence>
+            </motion.div>
+          </LayoutGroup>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function MemoryTile({
+  item,
+  index,
+  isDeleting,
+  onDelete,
+}: {
+  item: KnowledgeItem;
+  index: number;
+  isDeleting: boolean;
+  onDelete: () => void;
+}) {
+  const color =
+    memoryColors[index % memoryColors.length];
+
+  const size =
+    index % 7 === 0
+      ? "min-h-[360px]"
+      : index % 5 === 0
+        ? "min-h-[320px]"
+        : index % 3 === 0
+          ? "min-h-[270px]"
+          : "min-h-[230px]";
+
+  const visibleTags = item.tags.slice(0, 4);
+
+  return (
+    <motion.article
+      layout
+      initial={{
+        opacity: 0,
+        y: 24,
+        scale: 0.96,
+      }}
+      animate={{
+        opacity: isDeleting ? 0.45 : 1,
+        y: 0,
+        scale: isDeleting ? 0.97 : 1,
+      }}
+      exit={{
+        opacity: 0,
+        scale: 0.9,
+        y: 20,
+      }}
+      transition={{
+        layout: {
+          type: "spring",
+          stiffness: 260,
+          damping: 28,
+        },
+        opacity: {
+          duration: 0.2,
+        },
+        delay: Math.min(index, 7) * 0.04,
+      }}
+      whileHover={
+        isDeleting
+          ? undefined
+          : {
+              y: -7,
+              rotate:
+                index % 2 === 0
+                  ? -0.35
+                  : 0.35,
+              transition: {
+                type: "spring",
+                stiffness: 350,
+                damping: 24,
+              },
+            }
+      }
+      className={cn(
+        "group mb-4 break-inside-avoid",
+        isDeleting && "pointer-events-none",
+      )}
+    >
+      <div
+        className={`relative flex ${size} overflow-hidden rounded-[30px] border border-border/70 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-shadow duration-500 group-hover:shadow-[0_24px_70px_-30px_rgba(0,0,0,0.35)]`}
+      >
+        <div
+          className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${color.background} opacity-70 transition duration-700 group-hover:scale-110 group-hover:opacity-100`}
+        />
+
+        <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-white/15 blur-3xl dark:bg-white/5" />
+
+        <div className="relative flex w-full flex-col p-5 sm:p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div
+              className={`grid h-10 w-10 place-items-center rounded-2xl border border-white/20 bg-background/60 backdrop-blur-xl ${color.accent}`}
+            >
+              {item.platform === "youtube" ? (
+                <Video className="h-4 w-4" />
+              ) : [
+                  "twitter",
+                  "linkedin",
+                  "instagram",
+                  "reddit",
+                ].includes(item.platform) ? (
+                <MessagesSquare className="h-4 w-4" />
+              ) : (
+                <Globe2 className="h-4 w-4" />
+              )}
+            </div>
+
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={onDelete}
+                disabled={isDeleting}
+                aria-label={`Delete ${item.title}`}
+                title="Delete memory"
+                className="grid h-9 w-9 place-items-center rounded-full bg-background/50 text-muted-foreground opacity-0 backdrop-blur transition-all duration-300 hover:bg-destructive/10 hover:text-destructive disabled:cursor-not-allowed group-hover:opacity-100"
+              >
+                {isDeleting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5" />
+                )}
+              </button>
+
+              <a
+                href={item.url}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={`Open ${item.title}`}
+                title="Open original source"
+                className="grid h-9 w-9 place-items-center rounded-full bg-background/50 text-muted-foreground opacity-0 backdrop-blur transition-all duration-300 hover:bg-background hover:text-foreground group-hover:opacity-100"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            </div>
           </div>
-        </aside>
+
+          <div className="mt-auto pt-10">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="rounded-full bg-background/55 px-2.5 py-1 text-[10px] font-medium capitalize text-muted-foreground backdrop-blur">
+                {item.platform}
+              </span>
+
+              <span className="text-[10px] text-muted-foreground">
+                {item.savedAt}
+              </span>
+            </div>
+
+            <h3
+              className={`font-semibold tracking-[-0.025em] text-foreground ${
+                index % 7 === 0
+                  ? "text-[22px] leading-[1.15]"
+                  : "text-[17px] leading-[1.25]"
+              }`}
+            >
+              {item.title}
+            </h3>
+
+            <p
+              className={`mt-3 text-[12.5px] leading-relaxed text-muted-foreground ${
+                index % 7 === 0
+                  ? "line-clamp-6"
+                  : index % 3 === 0
+                    ? "line-clamp-4"
+                    : "line-clamp-3"
+              }`}
+            >
+              {item.summary}
+            </p>
+
+            {visibleTags.length > 0 ? (
+              <div className="mt-5 flex flex-wrap gap-1.5">
+                {visibleTags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-full border border-border/60 bg-background/40 px-2.5 py-1 text-[10px] text-muted-foreground backdrop-blur"
+                  >
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </motion.article>
+  );
+}
+
+function AnimatedNumber({
+  value,
+  suffix = "",
+  duration = 550,
+}: {
+  value: number;
+  suffix?: string;
+  duration?: number;
+}) {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    if (value === 0) {
+      setDisplayValue(0);
+      return;
+    }
+
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    if (reducedMotion) {
+      setDisplayValue(value);
+      return;
+    }
+
+    let frameId = 0;
+    const startedAt = performance.now();
+
+    function animate(now: number) {
+      const progress = Math.min(
+        (now - startedAt) / duration,
+        1,
+      );
+
+      const eased =
+        1 - Math.pow(1 - progress, 3);
+
+      setDisplayValue(
+        Math.round(value * eased),
+      );
+
+      if (progress < 1) {
+        frameId =
+          requestAnimationFrame(animate);
+      }
+    }
+
+    frameId = requestAnimationFrame(animate);
+
+    return () => {
+      cancelAnimationFrame(frameId);
+    };
+  }, [duration, value]);
+
+  return (
+    <span>
+      {displayValue.toLocaleString()}
+      {suffix}
+    </span>
+  );
+}
+
+function MemoryCanvasLoading() {
+  return (
+    <div className="columns-1 gap-4 sm:columns-2 xl:columns-3 2xl:columns-4">
+      {[
+        300,
+        220,
+        250,
+        330,
+        230,
+        270,
+        360,
+        240,
+      ].map((height, index) => (
+        <div
+          key={index}
+          style={{
+            height,
+          }}
+          className="mb-4 break-inside-avoid animate-pulse rounded-[30px] bg-muted"
+        />
+      ))}
+    </div>
+  );
+}
+
+function EmptyMemoryCanvas() {
+  return (
+    <motion.div
+      initial={{
+        opacity: 0,
+        scale: 0.98,
+      }}
+      animate={{
+        opacity: 1,
+        scale: 1,
+      }}
+      className="relative overflow-hidden rounded-[36px] bg-foreground px-6 py-20 text-center text-background"
+    >
+      <motion.div
+        aria-hidden
+        animate={{
+          x: [0, 18, -12, 0],
+          y: [0, -14, 10, 0],
+          rotate: [0, 4, -3, 0],
+        }}
+        transition={{
+          duration: 12,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        className="absolute left-[12%] top-[18%] h-24 w-20 rounded-[24px] bg-violet-400/30 blur-[1px]"
+      />
+
+      <motion.div
+        aria-hidden
+        animate={{
+          x: [0, -14, 10, 0],
+          y: [0, 12, -8, 0],
+          rotate: [0, -5, 2, 0],
+        }}
+        transition={{
+          duration: 14,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        className="absolute bottom-[12%] right-[14%] h-28 w-24 rounded-full bg-orange-300/25 blur-[1px]"
+      />
+
+      <div className="relative">
+        <motion.div
+          animate={{
+            rotate: [0, 5, -5, 0],
+          }}
+          transition={{
+            duration: 6,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="mx-auto grid h-16 w-16 place-items-center rounded-[22px] bg-background/10 backdrop-blur"
+        >
+          <Shuffle className="h-7 w-7" />
+        </motion.div>
+
+        <h3 className="mt-6 text-2xl font-semibold tracking-[-0.03em]">
+          Your mind is ready.
+        </h3>
+
+        <p className="mx-auto mt-3 max-w-sm text-[13px] leading-relaxed text-background/65">
+          Save anything that sparks your curiosity.
+          Memora will understand it and bring it back when
+          you need it.
+        </p>
+
+        <Link href="/app/capture">
+          <Button
+            variant="secondary"
+            className="mt-7 rounded-full"
+          >
+            <Sparkles className="h-4 w-4" />
+            Save your first memory
+          </Button>
+        </Link>
+      </div>
+    </motion.div>
+  );
+}
+
+function updateLibraryCaches(
+  nextItems: KnowledgeItem[],
+) {
+  const cacheKeys: string[] = [];
+
+  for (
+    let index = 0;
+    index < sessionStorage.length;
+    index += 1
+  ) {
+    const key = sessionStorage.key(index);
+
+    if (key?.startsWith("memora-library:")) {
+      cacheKeys.push(key);
+    }
+  }
+
+  cacheKeys.forEach((key) => {
+    sessionStorage.setItem(
+      key,
+      JSON.stringify(nextItems),
+    );
+  });
+}
+
+function LibraryPageLoading() {
+  return (
+    <div className="mx-auto max-w-[1600px] px-4 pb-24 pt-8 lg:px-8">
+      <div className="animate-pulse">
+        <div className="h-4 w-32 rounded bg-muted" />
+
+        <div className="mt-3 h-9 w-72 rounded bg-muted" />
+
+        <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-4">
+          {Array.from({
+            length: 4,
+          }).map((_, index) => (
+            <div
+              key={index}
+              className="h-32 rounded-2xl border border-border bg-surface"
+            />
+          ))}
+        </div>
+
+        <div className="mt-12 columns-1 gap-4 sm:columns-2 xl:columns-3 2xl:columns-4">
+          {[
+            300,
+            220,
+            250,
+            330,
+            230,
+            270,
+            360,
+            240,
+          ].map((height, index) => (
+            <div
+              key={index}
+              style={{
+                height,
+              }}
+              className="mb-4 break-inside-avoid rounded-[30px] bg-muted"
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
-// temp code got backend check
-// import Link from "next/link";
-// import { redirect } from "next/navigation";
-// import { getCurrentUser } from "@/lib/auth/get-current-user";
-// import { BackendAuthTest } from "@/components/auth/backend-auth-test";
-
-// export default async function AppPage() {
-//   const user = await getCurrentUser();
-
-//   if (!user) {
-//     redirect("/login");
-//   }
-
-//   return (
-//     <main className="flex min-h-screen items-center justify-center bg-background px-6">
-//       <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-sm">
-//         <p className="text-sm text-muted-foreground">Logged in as</p>
-
-//         <h1 className="mt-2 text-xl font-semibold tracking-tight">
-//           {user.email}
-//         </h1>
-
-//         <div className="mt-6 rounded-xl bg-muted p-4 text-sm">
-//           <p className="font-medium">Session verified successfully.</p>
-//           <p className="mt-1 text-muted-foreground">
-//             Frontend Supabase auth is now working.
-//           </p>
-//         </div>
-
-//         <BackendAuthTest />
-
-//         <Link
-//           href="/logout"
-//           className="mt-6 inline-flex rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-//         >
-//           Logout
-//         </Link>
-//       </div>
-//     </main>
-//   );
-// }
-
-
-
-
-//temporary code for cheking supabase
-// import Link from "next/link";
-// import { redirect } from "next/navigation";
-// import { getCurrentUser } from "@/lib/auth/get-current-user";
-
-// export default async function AppPage() {
-//   const user = await getCurrentUser();
-
-//   if (!user) {
-//     redirect("/login");
-//   }
-
-//   return (
-//     <main className="flex min-h-screen items-center justify-center bg-background px-6">
-//       <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-sm">
-//         <p className="text-sm text-muted-foreground">Logged in as</p>
-
-//         <h1 className="mt-2 text-xl font-semibold tracking-tight">
-//           {user.email}
-//         </h1>
-
-//         <div className="mt-6 rounded-xl bg-muted p-4 text-sm">
-//           <p className="font-medium">Session verified successfully.</p>
-//           <p className="mt-1 text-muted-foreground">
-//             Frontend Supabase auth is now working.
-//           </p>
-//         </div>
-
-//         <Link
-//           href="/logout"
-//           className="mt-6 inline-flex rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-//         >
-//           Logout
-//         </Link>
-//       </div>
-//     </main>
-//   );
-// }
+export default function LibraryPage() {
+  return (
+    <Suspense fallback={<LibraryPageLoading />}>
+      <LibraryPageContent />
+    </Suspense>
+  );
+}

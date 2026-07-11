@@ -17,8 +17,17 @@ import {
   Check,
   Star,
   Command,
+  BookOpen,
+  Loader2,
+  MessagesSquare,
+  Tag,
+  Trash2,
+  Video,
 } from "lucide-react";
-
+import {
+  deleteKnowledgeItem,
+  getKnowledgeItems,
+} from "@/lib/api/knowledge";
 import { Logo } from "@/components/brand/logo";
 
 const platforms = [

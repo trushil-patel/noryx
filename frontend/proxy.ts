@@ -1,7 +1,10 @@
-import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import {
+  NextResponse,
+  type NextRequest,
+} from "next/server";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({
     request,
   });
@@ -14,32 +17,47 @@ export async function middleware(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
+
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            request.cookies.set(name, value);
-            response.cookies.set(name, value, options);
+          cookiesToSet.forEach(
+            ({ name, value }) => {
+              request.cookies.set(name, value);
+            },
+          );
+
+          response = NextResponse.next({
+            request,
           });
+
+          cookiesToSet.forEach(
+            ({ name, value, options }) => {
+              response.cookies.set(name, value, options);
+            },
+          );
         },
       },
-    }
+    },
   );
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isAppRoute = request.nextUrl.pathname.startsWith("/app");
-  const isLoginRoute = request.nextUrl.pathname.startsWith("/login");
+  const pathname = request.nextUrl.pathname;
+  const isAppRoute = pathname.startsWith("/app");
+  const isLoginRoute = pathname.startsWith("/login");
 
   if (isAppRoute && !user) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
+
     return NextResponse.redirect(redirectUrl);
   }
 
   if (isLoginRoute && user) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/app";
+
     return NextResponse.redirect(redirectUrl);
   }
 

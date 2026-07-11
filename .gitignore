@@ -1,28 +1,23 @@
-# dependencies
-node_modules/
+# Secrets
+.env
+.env.*
+!.env.example
+frontend/.env.local
+memora-python-backend/.env
 
-# production
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# Build output
 dist/
 build/
-
-# environment
-.env
-.env.local
-
-# logs
-logs
-*.log
-npm-debug.log*
-
-# OS
-.DS_Store
-Thumbs.db
-
-# vscode
-.vscode/
-
-# cache
-.cache/
-
-# coverage
-coverage/

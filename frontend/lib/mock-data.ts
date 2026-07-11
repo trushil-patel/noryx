@@ -15,6 +15,8 @@ export interface KnowledgeItem {
   url: string;
   author: string;
   savedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
   summary: string;
   takeaways: string[];
   whyItMatters: string;
