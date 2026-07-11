@@ -23,7 +23,9 @@ import {
   Hash,
   Loader2,
   MessagesSquare,
+  Newspaper,
   RefreshCw,
+  Rss,
   Search,
   Shuffle,
   Sparkles,
@@ -32,6 +34,13 @@ import {
   Video,
   Zap,
 } from "lucide-react";
+import {
+  SiInstagram,
+  SiLinkerd,
+  SiReddit,
+  SiX,
+  SiYoutube,
+} from "react-icons/si";
 
 import { Button } from "@/components/ui/button";
 import { createSupabaseClient } from "@/lib/supabase/client";
@@ -69,6 +78,29 @@ const memoryColors = [
     accent: "text-rose-500",
   },
 ];
+
+function PlatformIcon({ platform }: { platform: KnowledgeItem["platform"] }) {
+  const iconClassName = "h-4 w-4";
+
+  switch (platform.toLowerCase()) {
+    case "youtube":
+      return <SiYoutube className={iconClassName} aria-hidden="true" />;
+    case "instagram":
+      return <SiInstagram className={iconClassName} aria-hidden="true" />;
+    case "reddit":
+      return <SiReddit className={iconClassName} aria-hidden="true" />;
+    case "linkedin":
+      return <SiLinkerd className={iconClassName} aria-hidden="true" />;
+    case "twitter":
+      return <SiX className={iconClassName} aria-hidden="true" />;
+    case "blog":
+      return <Rss className={iconClassName} aria-hidden="true" />;
+    case "article":
+      return <Newspaper className={iconClassName} aria-hidden="true" />;
+    default:
+      return <Globe2 className={iconClassName} aria-hidden="true" />;
+  }
+}
 
 function LibraryPageContent() {
   const searchParams = useSearchParams();
@@ -725,20 +757,11 @@ function MemoryTile({
         <div className="relative flex w-full flex-col p-5 sm:p-6">
           <div className="flex items-start justify-between gap-4">
             <div
+              aria-label={`${item.platform} source`}
+              title={item.platform}
               className={`grid h-10 w-10 place-items-center rounded-2xl border border-white/20 bg-background/60 backdrop-blur-xl ${color.accent}`}
             >
-              {item.platform === "youtube" ? (
-                <Video className="h-4 w-4" />
-              ) : [
-                  "twitter",
-                  "linkedin",
-                  "instagram",
-                  "reddit",
-                ].includes(item.platform) ? (
-                <MessagesSquare className="h-4 w-4" />
-              ) : (
-                <Globe2 className="h-4 w-4" />
-              )}
+              <PlatformIcon platform={item.platform} />
             </div>
 
             <div className="flex items-center gap-1">

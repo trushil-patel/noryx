@@ -36,16 +36,18 @@ type CreateKnowledgeResponse = {
   warning?: string;
 };
 
-function normalizePlatform(platform: string): Platform {
-  const value = platform.toLowerCase();
+function normalizePlatform(platform: string, url = ""): Platform {
+  const value = `${platform} ${url}`.toLowerCase();
 
   if (value.includes("youtube")) return "youtube";
+  if (value.includes("youtu.be")) return "youtube";
   if (value.includes("reddit")) return "reddit";
   if (value.includes("instagram")) return "instagram";
   if (value.includes("linkedin")) return "linkedin";
 
   if (
     value.includes("twitter") ||
+    value.includes("x.com") ||
     value === "x"
   ) {
     return "twitter";
@@ -103,7 +105,10 @@ function normalizeKnowledgeItem(
 
   return {
     id: item.id,
-    platform: normalizePlatform(item.platform),
+    platform: normalizePlatform(
+      item.platform,
+      item.original_url,
+    ),
     title: item.title ?? "Untitled knowledge item",
     source,
     url: item.original_url,
