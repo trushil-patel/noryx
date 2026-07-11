@@ -73,7 +73,15 @@ const memoryColors = [
 function LibraryPageContent() {
   const searchParams = useSearchParams();
   const capturedId = searchParams.get("captured");
+  const tagFilter = searchParams
+    .get("tag")
+    ?.trim()
+    .toLowerCase();
 
+  const sourceFilter = searchParams
+    .get("source")
+    ?.trim()
+    .toLowerCase();
   const [items, setItems] = useState<KnowledgeItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -265,38 +273,60 @@ function LibraryPageContent() {
   );
 
   const filteredItems = useMemo(() => {
-    switch (activeFilter) {
-      case "articles":
-        return items.filter(
+      let result = items;
+
+      if (tagFilter) {
+        result = result.filter((item) =>
+          item.tags.some(
+            (tag) => tag.trim().toLowerCase() === tagFilter,
+          ),
+        );
+      }
+
+      if (sourceFilter) {
+        result = result.filter(
           (item) =>
-            item.platform === "article" ||
-            item.platform === "blog",
+            item.platform.toLowerCase() === sourceFilter,
         );
+      }
 
-      case "videos":
-        return items.filter(
-          (item) => item.platform === "youtube",
-        );
+      switch (activeFilter) {
+        case "articles":
+          return result.filter(
+            (item) =>
+              item.platform === "article" ||
+              item.platform === "blog",
+          );
 
-      case "social":
-        return items.filter((item) =>
-          [
-            "twitter",
-            "linkedin",
-            "instagram",
-            "reddit",
-          ].includes(item.platform),
-        );
+        case "videos":
+          return result.filter(
+            (item) => item.platform === "youtube",
+          );
 
-      case "tagged":
-        return items.filter(
-          (item) => item.tags.length > 0,
-        );
+        case "social":
+          return result.filter((item) =>
+            [
+              "twitter",
+              "linkedin",
+              "instagram",
+              "reddit",
+            ].includes(item.platform),
+          );
 
-      default:
-        return items;
-    }
-  }, [activeFilter, items]);
+        case "tagged":
+          return result.filter(
+            (item) => item.tags.length > 0,
+          );
+
+        default:
+          return result;
+      }
+    }, [
+      activeFilter,
+      items,
+      sourceFilter,
+      tagFilter,
+    ]);
 
   const activeFilterLabel =
     filters.find(
@@ -465,7 +495,32 @@ function LibraryPageContent() {
             <h2 className="text-2xl font-semibold tracking-[-0.03em]">
               Things worth remembering.
             </h2>
+            {tagFilter || sourceFilter ? (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="text-[11px] text-muted-foreground">
+                  Showing:
+                </span>
 
+                {tagFilter ? (
+                  <span className="rounded-full bg-accent-soft px-3 py-1 text-[11px] font-medium text-accent">
+                    #{tagFilter}
+                  </span>
+                ) : null}
+
+                {sourceFilter ? (
+                  <span className="rounded-full bg-accent-soft px-3 py-1 text-[11px] font-medium capitalize text-accent">
+                    {sourceFilter}
+                  </span>
+                ) : null}
+
+                <Link
+                  href="/app"
+                  className="rounded-full border border-border px-3 py-1 text-[11px] text-muted-foreground hover:text-foreground"
+                >
+                  Clear filter
+                </Link>
+              </div>
+            ) : null}
             <p className="mt-1 text-[13px] text-muted-foreground">
               Discover your saved knowledge by its most useful
               categories.
