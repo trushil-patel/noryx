@@ -11,10 +11,33 @@ from memora.services.ai import (
     generate_metadata,
     generate_query_embedding,
 )
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, status
 from uuid import UUID
 router = APIRouter(prefix="/api/knowledge", tags=["knowledge"])
 SELECT = "id,user_id,original_url,platform,title,summary,key_takeaways,why_it_matters,thumbnail_url,status,source_type,created_at,updated_at,knowledge_tags(id,tag)"
+async def complete_embedding_later(
+    memory_id: str,
+    title: str,
+    text_to_embed: str,
+) -> None:
+    try:
+        embedding = await generate_document_embedding(
+            text=text_to_embed,
+            title=title,
+        )
 
+        admin_client().table("knowledge_items").update(
+            {
+                "embedding": embedding,
+                "status": "completed",
+                "updated_at": datetime.now(UTC).isoformat(),
+            }
+        ).eq("id", memory_id).execute()
+
+    except Exception:
+        # Do not break capture if embedding fails.
+        # The memory is still saved; search may not include it until retried.
+        return
 def platform(url: str) -> str:
     host = (urlparse(url).hostname or "").lower()
     for name, domains in {"youtube": ("youtube.com", "youtu.be"), "reddit": ("reddit.com",), "instagram": ("instagram.com",), "linkedin": ("linkedin.com",), "twitter": ("twitter.com", "x.com"), "blog": ("medium.com", "substack.com")}.items():
@@ -131,6 +154,7 @@ async def delete_memory(
 async def capture(
     body: CaptureRequest,
     user: CurrentUser,
+    background_tasks: BackgroundTasks,
 ) -> dict[str, object]:
     url = str(body.url)
 
@@ -140,8 +164,7 @@ async def capture(
 
         if not document.content.strip():
             raise ValueError(
-                "No useful knowledge could be extracted "
-                "from this source."
+                "No readable content or metadata could be extracted from this source."
             )
 
         # Step 2: Generate and validate AI metadata.
@@ -196,30 +219,7 @@ async def capture(
                 "The embedding input is empty."
             )
 
-        # Step 4: Generate and validate the embedding.
-        embedding = await generate_document_embedding(
-            text=text_to_embed,
-            title=title,
-        )
-
-        if not embedding:
-            raise ValueError(
-                "Gemini returned an empty embedding."
-            )
-
-        if len(embedding) != 3072:
-            raise ValueError(
-                "Invalid embedding dimension. "
-                f"Expected 3072, received {len(embedding)}."
-            )
-
-        if not all(
-            isinstance(value, int | float)
-            for value in embedding
-        ):
-            raise ValueError(
-                "Embedding contains invalid values."
-            )
+      
 
         # Step 5: Only now write to the database.
         # The RPC inserts the item and tags atomically.
@@ -234,7 +234,7 @@ async def capture(
                 "p_key_takeaways": key_takeaways,
                 "p_why_it_matters": why_it_matters,
                 "p_source_type": document.content_type,
-                "p_embedding": embedding,
+                "p_embedding": None,
                 "p_tags": tags,
             },
         ).execute()
@@ -245,7 +245,12 @@ async def capture(
                 "created memory."
             )
         created_item = response.data[0]
-
+        background_tasks.add_task(
+            complete_embedding_later,
+            created_item["id"],
+            title,
+            text_to_embed,
+        )
         if document.thumbnail_url:
             admin_client().table("knowledge_items").update(
                 {"thumbnail_url": document.thumbnail_url}
@@ -259,7 +264,7 @@ async def capture(
             }
             for tag in tags
         ]
-
+        created_item["status"] = "processing"
         return {
             "success": True,
             "item": created_item,

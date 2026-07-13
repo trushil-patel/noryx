@@ -1,3 +1,4 @@
+import json
 import re
 from html import unescape
 from urllib.parse import parse_qs, urljoin, urlparse
@@ -32,11 +33,22 @@ def _meta(soup: BeautifulSoup, **attrs: str) -> str | None:
     )
 
 
+def _first_non_empty(*values: str | None) -> str | None:
+    for value in values:
+        cleaned = _clean(value)
+
+        if cleaned:
+            return cleaned
+
+    return None
+
+
 def _thumbnail(url: str, soup: BeautifulSoup) -> str | None:
     image = (
         _meta(soup, property="og:image")
         or _meta(soup, name="twitter:image")
         or _meta(soup, property="twitter:image")
+        or _meta(soup, itemprop="image")
     )
 
     if not image:
@@ -75,15 +87,13 @@ def _is_youtube_url(url: str) -> bool:
 async def _build_youtube_document(url: str) -> KnowledgeDocument:
     video_id = _youtube_video_id(url)
 
-    oembed_url = "https://www.youtube.com/oembed"
-
     try:
         async with httpx.AsyncClient(
             follow_redirects=True,
             timeout=12,
         ) as client:
             response = await client.get(
-                oembed_url,
+                "https://www.youtube.com/oembed",
                 params={
                     "url": url,
                     "format": "json",
@@ -103,17 +113,15 @@ async def _build_youtube_document(url: str) -> KnowledgeDocument:
         author = _clean(data.get("author_name"))
         thumbnail_url = _clean(data.get("thumbnail_url"))
 
-        content_parts = [
-            f"YouTube video title: {title}",
-            f"Channel: {author}",
-            f"Source URL: {url}",
-        ]
-
-        if video_id:
-            content_parts.append(f"YouTube video ID: {video_id}")
-
         content = ". ".join(
-            part for part in content_parts if part and not part.endswith(": ")
+            item
+            for item in [
+                f"YouTube video title: {title}" if title else None,
+                f"Channel: {author}" if author else None,
+                f"YouTube video ID: {video_id}" if video_id else None,
+                f"Source URL: {url}",
+            ]
+            if item
         )
 
         return KnowledgeDocument(
@@ -127,7 +135,8 @@ async def _build_youtube_document(url: str) -> KnowledgeDocument:
                 else "YouTube video"
             ),
             readable_title=title or "YouTube video",
-            thumbnail_url=thumbnail_url or (
+            thumbnail_url=thumbnail_url
+            or (
                 f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg"
                 if video_id
                 else None
@@ -138,7 +147,6 @@ async def _build_youtube_document(url: str) -> KnowledgeDocument:
         )
 
     except Exception:
-        title = "YouTube video"
         thumbnail_url = (
             f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg"
             if video_id
@@ -149,14 +157,151 @@ async def _build_youtube_document(url: str) -> KnowledgeDocument:
             url=url,
             content_type="video",
             extraction_method="fallback",
-            page_title=title,
+            page_title="YouTube video",
             description="YouTube video metadata could not be fully loaded.",
-            readable_title=title,
+            readable_title="YouTube video",
             thumbnail_url=thumbnail_url,
             content=f"YouTube video URL: {url}",
             homepage_data=None,
             confidence=0.35,
         )
+
+
+def _json_ld_text(soup: BeautifulSoup) -> str:
+    useful_values: list[str] = []
+
+    keys = {
+        "headline",
+        "name",
+        "description",
+        "articleBody",
+        "text",
+        "about",
+        "keywords",
+        "datePublished",
+        "author",
+        "creator",
+        "publisher",
+    }
+
+    def collect(value: object) -> None:
+        if isinstance(value, dict):
+            for key, nested in value.items():
+                if key in keys:
+                    if isinstance(nested, str):
+                        useful_values.append(nested)
+                    elif isinstance(nested, dict):
+                        name = nested.get("name")
+                        if isinstance(name, str):
+                            useful_values.append(name)
+                    elif isinstance(nested, list):
+                        for item in nested:
+                            collect(item)
+                elif isinstance(nested, dict | list):
+                    collect(nested)
+
+        elif isinstance(value, list):
+            for item in value:
+                collect(item)
+
+    for script in soup.find_all(
+        "script",
+        attrs={"type": "application/ld+json"},
+    ):
+        raw = script.string or script.get_text()
+
+        try:
+            collect(json.loads(raw))
+        except Exception:
+            continue
+
+    return "\n".join(
+        dict.fromkeys(
+            _clean(value)
+            for value in useful_values
+            if _clean(value)
+        )
+    )
+
+
+def _metadata_text(url: str, soup: BeautifulSoup) -> str:
+    values = [
+        f"Source URL: {url}",
+        _clean(soup.title.string if soup.title else ""),
+        _meta(soup, property="og:title"),
+        _meta(soup, name="twitter:title"),
+        _meta(soup, name="description"),
+        _meta(soup, property="og:description"),
+        _meta(soup, name="twitter:description"),
+        _meta(soup, name="keywords"),
+    ]
+
+    return "\n".join(
+        dict.fromkeys(
+            value for value in values if value and _clean(value)
+        )
+    )
+
+
+def _visible_text(soup: BeautifulSoup) -> str:
+    for element in soup.select(
+        "script, style, noscript, svg, canvas, nav, footer, header, form"
+    ):
+        element.decompose()
+
+    selectors = [
+        "article",
+        "main",
+        "h1",
+        "h2",
+        "h3",
+        "p",
+        "li",
+        "blockquote",
+    ]
+
+    values: list[str] = []
+
+    for selector in selectors:
+        for element in soup.select(selector):
+            text = _clean(element.get_text(" ", strip=True))
+
+            if len(text) >= 30:
+                values.append(text)
+
+            if len(" ".join(values)) > 16000:
+                break
+
+    return "\n".join(dict.fromkeys(values))
+
+
+def _homepage_data(soup: BeautifulSoup) -> HomepageData:
+    navigation = [
+        _clean(item.get_text())
+        for item in soup.select("nav a")
+    ][0:20]
+
+    headings = [
+        _clean(item.get_text())
+        for item in soup.select("h1, h2")
+    ][0:30]
+
+    featured = [
+        _clean(item.get_text())
+        for item in soup.select("article h2, article h3")
+    ][0:12]
+
+    return HomepageData(
+        navigation=[
+            item for item in navigation if len(item) > 2
+        ],
+        headings=[
+            item for item in headings if item
+        ],
+        featured_articles=[
+            item for item in featured if item
+        ],
+    )
 
 
 def _classify(url: str, soup: BeautifulSoup) -> ContentType:
@@ -231,6 +376,9 @@ def _classify(url: str, soup: BeautifulSoup) -> ContentType:
                     "bbc.",
                     "cnn.",
                     "reuters.",
+                    "apnews.",
+                    "thehindu.",
+                    "indianexpress.",
                 )
             )
             or "news" in combined,
@@ -264,55 +412,98 @@ def _classify(url: str, soup: BeautifulSoup) -> ContentType:
     )
 
 
+def _fallback_document(url: str, reason: str) -> KnowledgeDocument:
+    parsed = urlparse(url)
+    host = parsed.hostname or "Unknown website"
+    path_words = " ".join(
+        part
+        for part in re.split(r"[-_/]+", parsed.path)
+        if part
+    )
+
+    content = "\n".join(
+        [
+            f"Source URL: {url}",
+            f"Website: {host}",
+            f"Path context: {path_words}",
+            f"Extraction note: {reason}",
+        ]
+    )
+
+    return KnowledgeDocument(
+        url=url,
+        content_type="unknown",
+        extraction_method="fallback",
+        page_title=host,
+        description=(
+            "This page could not be fully extracted, "
+            "so Memora saved available URL metadata."
+        ),
+        readable_title=host,
+        thumbnail_url=None,
+        content=content,
+        homepage_data=None,
+        confidence=0.2,
+    )
+
+
 async def build_knowledge_document(url: str) -> KnowledgeDocument:
     if _is_youtube_url(url):
         return await _build_youtube_document(url)
 
-    html = await fetch_page(url)
+    try:
+        html = await fetch_page(url)
+    except Exception as exc:
+        return _fallback_document(url, str(exc))
+
     soup = BeautifulSoup(html, "html.parser")
 
-    page_title = (
-        _clean(soup.title.string if soup.title else "")
-        or None
+    page_title = _first_non_empty(
+        _clean(soup.title.string if soup.title else ""),
+        _meta(soup, property="og:title"),
+        _meta(soup, name="twitter:title"),
     )
 
-    description = (
-        _meta(soup, name="description")
-        or _meta(soup, property="og:description")
+    description = _first_non_empty(
+        _meta(soup, name="description"),
+        _meta(soup, property="og:description"),
+        _meta(soup, name="twitter:description"),
     )
 
     thumbnail_url = _thumbnail(url, soup)
     kind = _classify(url, soup)
+    data = _homepage_data(soup) if kind in {"homepage", "blog"} else None
 
-    if kind in {"homepage", "blog"}:
-        navigation = [
-            _clean(item.get_text())
-            for item in soup.select("nav a")
-        ][0:20]
-
-        headings = [
-            _clean(item.get_text())
-            for item in soup.select("h1, h2")
-        ][0:30]
-
-        featured = [
-            _clean(item.get_text())
-            for item in soup.select("article h2, article h3")
-        ][0:12]
-
-        data = HomepageData(
-            navigation=[
-                item for item in navigation if len(item) > 2
-            ],
-            headings=[
-                item for item in headings if item
-            ],
-            featured_articles=[
-                item for item in featured if item
-            ],
+    extracted = (
+        trafilatura.extract(
+            html,
+            url=url,
+            include_comments=False,
+            include_tables=True,
+            favor_recall=True,
         )
+        or ""
+    )
 
-        content = "\n".join(
+    metadata_content = _metadata_text(url, soup)
+    json_ld_content = _json_ld_text(soup)
+    visible_content = _visible_text(soup)
+
+    content_parts = [
+        _clean(extracted),
+        _clean(json_ld_content),
+        _clean(metadata_content),
+        _clean(visible_content),
+    ]
+
+    content = "\n\n".join(
+        dict.fromkeys(
+            part for part in content_parts if len(part) >= 20
+        )
+    )
+
+    if data:
+        homepage_content = "\n".join(
             [
                 f"Website Title: {page_title or ''}",
                 "Website Navigation:",
@@ -324,45 +515,42 @@ async def build_knowledge_document(url: str) -> KnowledgeDocument:
             ]
         )
 
-        method = "homepage"
-
-    else:
-        data = None
-
-        extracted = (
-            trafilatura.extract(
-                html,
-                url=url,
-                include_comments=False,
-                include_tables=True,
-            )
-            or ""
+        content = "\n\n".join(
+            part
+            for part in [
+                content,
+                homepage_content,
+            ]
+            if part.strip()
         )
 
-        content = _clean(extracted)
+    if not content.strip():
+        return _fallback_document(
+            url,
+            "No readable page text or metadata was found.",
+        )
 
-        if len(content) < 300:
-            content = ". ".join(
-                item
-                for item in [
-                    page_title,
-                    description,
-                    _meta(soup, property="og:title"),
-                ]
-                if item
-            )
+    content = content[:30000]
 
-        method = "article" if content else "fallback"
+    confidence = 0.85
+    method: str = "article"
+
+    if len(content) < 500:
+        confidence = 0.45
+        method = "fallback"
+    elif not extracted and visible_content:
+        confidence = 0.65
+        method = "fallback"
 
     return KnowledgeDocument(
         url=url,
         content_type=kind,
-        extraction_method=method,
+        extraction_method=method,  # type: ignore[arg-type]
         page_title=page_title,
         description=description,
         readable_title=page_title,
         thumbnail_url=thumbnail_url,
         content=content,
         homepage_data=data,
-        confidence=0.85 if len(content) > 300 else 0.45,
+        confidence=confidence,
     )
