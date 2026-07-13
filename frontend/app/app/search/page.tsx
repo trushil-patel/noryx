@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
@@ -11,21 +11,47 @@ import {
 } from "lucide-react";
 
 import { searchKnowledgeItems } from "@/lib/api/knowledge";
-import type { KnowledgeItem } from "@/lib/mock-data";
+import type { KnowledgeItem, Platform } from "@/lib/mock-data";
 import {
   recentSearches,
   searchSuggestions,
 } from "@/lib/mock-data";
 import { KnowledgeCard } from "@/components/dashboard/knowledge-card";
 import { PlatformBadge } from "@/components/common/platform-badge";
+import { cn } from "@/lib/utils";
+
+type PlatformFilter = "all" | Platform;
+
+const platformFilters: PlatformFilter[] = [
+  "all",
+  "youtube",
+  "twitter",
+  "linkedin",
+  "instagram",
+  "reddit",
+  "article",
+  "blog",
+];
 
 export default function SearchPage() {
   const [q, setQ] = useState("");
   const [searchedQuery, setSearchedQuery] = useState("");
   const [results, setResults] = useState<KnowledgeItem[]>([]);
+  const [activePlatform, setActivePlatform] =
+    useState<PlatformFilter>("all");
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const filteredResults = useMemo(() => {
+    if (activePlatform === "all") {
+      return results;
+    }
+
+    return results.filter(
+      (item) => item.platform === activePlatform,
+    );
+  }, [activePlatform, results]);
 
   async function runSearch(value?: string) {
     const query = (value ?? q).trim();
@@ -38,6 +64,7 @@ export default function SearchPage() {
       setQ(query);
       setIsSearching(true);
       setError(null);
+      setActivePlatform("all");
 
       const items = await searchKnowledgeItems(query);
 
@@ -134,7 +161,7 @@ export default function SearchPage() {
         </div>
       ) : null}
 
-      {!hasSearched && (
+      {!hasSearched ? (
         <div className="mx-auto mt-8 max-w-3xl">
           <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Suggested
@@ -171,46 +198,70 @@ export default function SearchPage() {
             ))}
           </div>
         </div>
-      )}
+      ) : null}
 
-      {hasSearched && (
+      {hasSearched ? (
         <>
-          <div className="mt-10 flex items-center justify-between">
+          <div className="mt-10 flex flex-wrap items-center justify-between gap-3">
             <p className="text-[13px] text-muted-foreground">
               {isSearching
                 ? `Searching for "${searchedQuery || q}"...`
-                : `${results.length} ${
-                    results.length === 1 ? "result" : "results"
+                : `${filteredResults.length} ${
+                    filteredResults.length === 1
+                      ? "result"
+                      : "results"
                   } for "${searchedQuery}"`}
             </p>
 
-            <button
-              type="button"
-              className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-[12px]"
-            >
+            <div className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-[12px] text-muted-foreground">
               <Filter className="h-3 w-3" />
-              Filters
-            </button>
+              Filter by source
+            </div>
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
-            {(
-              [
-                "youtube",
-                "twitter",
-                "linkedin",
-                "article",
-                "reddit",
-              ] as const
-            ).map((platform) => (
-              <PlatformBadge
-                key={platform}
-                platform={platform}
-              />
-            ))}
+            {platformFilters.map((platform) => {
+              const active = activePlatform === platform;
+
+              if (platform === "all") {
+                return (
+                  <button
+                    key="all"
+                    type="button"
+                    onClick={() => setActivePlatform("all")}
+                    className={cn(
+                      "rounded-full border px-3 py-1.5 text-[11px] font-medium transition",
+                      active
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-border bg-surface text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    All
+                  </button>
+                );
+              }
+
+              return (
+                <button
+                  key={platform}
+                  type="button"
+                  onClick={() => setActivePlatform(platform)}
+                  className={cn(
+                    "rounded-full transition",
+                    active
+                      ? "ring-2 ring-foreground/20"
+                      : "opacity-75 hover:opacity-100",
+                  )}
+                >
+                  <PlatformBadge platform={platform} />
+                </button>
+              );
+            })}
           </div>
 
-          {!isSearching && results.length === 0 && !error ? (
+          {!isSearching &&
+          filteredResults.length === 0 &&
+          !error ? (
             <div className="mt-10 rounded-2xl border border-dashed border-border bg-surface px-6 py-12 text-center">
               <Search className="mx-auto h-6 w-6 text-muted-foreground" />
 
@@ -219,14 +270,14 @@ export default function SearchPage() {
               </h2>
 
               <p className="mt-1 text-[13px] text-muted-foreground">
-                Try a broader topic or capture more knowledge
-                first.
+                Try a broader topic, clear the source filter, or
+                capture more knowledge first.
               </p>
             </div>
           ) : null}
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            {results.map((item, index) => (
+            {filteredResults.map((item, index) => (
               <KnowledgeCard
                 key={item.id}
                 item={item}
@@ -235,7 +286,7 @@ export default function SearchPage() {
             ))}
           </div>
         </>
-      )}
+      ) : null}
     </div>
   );
 }
