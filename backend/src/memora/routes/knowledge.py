@@ -13,8 +13,7 @@ from memora.services.ai import (
 )
 from uuid import UUID
 router = APIRouter(prefix="/api/knowledge", tags=["knowledge"])
-SELECT = "id,user_id,original_url,platform,title,summary,key_takeaways,why_it_matters,status,source_type,created_at,updated_at,knowledge_tags(id,tag)"
-
+SELECT = "id,user_id,original_url,platform,title,summary,key_takeaways,why_it_matters,thumbnail_url,status,source_type,created_at,updated_at,knowledge_tags(id,tag)"
 
 def platform(url: str) -> str:
     host = (urlparse(url).hostname or "").lower()
@@ -190,7 +189,7 @@ async def capture(
             )
 
         # Step 3: Build the complete embedding input.
-        text_to_embed = embedding_text(metadata)
+        text_to_embed = embedding_text(metadata, document)
 
         if not text_to_embed.strip():
             raise ValueError(
@@ -245,8 +244,14 @@ async def capture(
                 "Database did not return the "
                 "created memory."
             )
-
         created_item = response.data[0]
+
+        if document.thumbnail_url:
+            admin_client().table("knowledge_items").update(
+                {"thumbnail_url": document.thumbnail_url}
+            ).eq("id", created_item["id"]).eq("user_id", user.id).execute()
+
+            created_item["thumbnail_url"] = document.thumbnail_url
 
         created_item["knowledge_tags"] = [
             {

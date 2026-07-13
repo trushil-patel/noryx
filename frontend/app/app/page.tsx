@@ -34,9 +34,9 @@ import {
   Video,
   Zap,
 } from "lucide-react";
+import { FaLinkedin } from "react-icons/fa";
 import {
   SiInstagram,
-  SiLinkerd,
   SiReddit,
   SiX,
   SiYoutube,
@@ -90,7 +90,7 @@ function PlatformIcon({ platform }: { platform: KnowledgeItem["platform"] }) {
     case "reddit":
       return <SiReddit className={iconClassName} aria-hidden="true" />;
     case "linkedin":
-      return <SiLinkerd className={iconClassName} aria-hidden="true" />;
+      return <FaLinkedin className={iconClassName} aria-hidden="true" />;
     case "twitter":
       return <SiX className={iconClassName} aria-hidden="true" />;
     case "blog":
@@ -694,34 +694,21 @@ function MemoryTile({
           : "min-h-[230px]";
 
   const visibleTags = item.tags.slice(0, 4);
+  const hasThumbnail = Boolean(item.thumbnailUrl);
 
   return (
     <motion.article
       layout
-      initial={{
-        opacity: 0,
-        y: 24,
-        scale: 0.96,
-      }}
+      initial={{ opacity: 0, y: 24, scale: 0.96 }}
       animate={{
         opacity: isDeleting ? 0.45 : 1,
         y: 0,
         scale: isDeleting ? 0.97 : 1,
       }}
-      exit={{
-        opacity: 0,
-        scale: 0.9,
-        y: 20,
-      }}
+      exit={{ opacity: 0, scale: 0.9, y: 20 }}
       transition={{
-        layout: {
-          type: "spring",
-          stiffness: 260,
-          damping: 28,
-        },
-        opacity: {
-          duration: 0.2,
-        },
+        layout: { type: "spring", stiffness: 260, damping: 28 },
+        opacity: { duration: 0.2 },
         delay: Math.min(index, 7) * 0.04,
       }}
       whileHover={
@@ -729,15 +716,8 @@ function MemoryTile({
           ? undefined
           : {
               y: -7,
-              rotate:
-                index % 2 === 0
-                  ? -0.35
-                  : 0.35,
-              transition: {
-                type: "spring",
-                stiffness: 350,
-                damping: 24,
-              },
+              rotate: index % 2 === 0 ? -0.35 : 0.35,
+              transition: { type: "spring", stiffness: 350, damping: 24 },
             }
       }
       className={cn(
@@ -748,8 +728,25 @@ function MemoryTile({
       <div
         className={`relative flex ${size} overflow-hidden rounded-[30px] border border-border/70 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-shadow duration-500 group-hover:shadow-[0_24px_70px_-30px_rgba(0,0,0,0.35)]`}
       >
+        {hasThumbnail ? (
+          <>
+            <img
+              src={item.thumbnailUrl ?? ""}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/20 to-black/80" />
+            <div className="absolute inset-0 bg-gradient-to-tr from-black/35 via-transparent to-black/10" />
+          </>
+        ) : null}
+
         <div
-          className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${color.background} opacity-70 transition duration-700 group-hover:scale-110 group-hover:opacity-100`}
+          className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${color.background} transition duration-700 group-hover:scale-110 ${
+            hasThumbnail
+              ? "opacity-35"
+              : "opacity-70 group-hover:opacity-100"
+          }`}
         />
 
         <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-white/15 blur-3xl dark:bg-white/5" />
@@ -759,7 +756,11 @@ function MemoryTile({
             <div
               aria-label={`${item.platform} source`}
               title={item.platform}
-              className={`grid h-10 w-10 place-items-center rounded-2xl border border-white/20 bg-background/60 backdrop-blur-xl ${color.accent}`}
+              className={`grid h-10 w-10 place-items-center rounded-2xl border border-white/20 backdrop-blur-xl ${
+                hasThumbnail
+                  ? "bg-black/35 text-white"
+                  : `bg-background/60 ${color.accent}`
+              }`}
             >
               <PlatformIcon platform={item.platform} />
             </div>
@@ -771,7 +772,11 @@ function MemoryTile({
                 disabled={isDeleting}
                 aria-label={`Delete ${item.title}`}
                 title="Delete memory"
-                className="grid h-9 w-9 place-items-center rounded-full bg-background/50 text-muted-foreground opacity-0 backdrop-blur transition-all duration-300 hover:bg-destructive/10 hover:text-destructive disabled:cursor-not-allowed group-hover:opacity-100"
+                className={`grid h-9 w-9 place-items-center rounded-full opacity-0 backdrop-blur transition-all duration-300 hover:bg-destructive/10 hover:text-destructive disabled:cursor-not-allowed group-hover:opacity-100 ${
+                  hasThumbnail
+                    ? "bg-black/35 text-white/80"
+                    : "bg-background/50 text-muted-foreground"
+                }`}
               >
                 {isDeleting ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -786,7 +791,11 @@ function MemoryTile({
                 rel="noreferrer"
                 aria-label={`Open ${item.title}`}
                 title="Open original source"
-                className="grid h-9 w-9 place-items-center rounded-full bg-background/50 text-muted-foreground opacity-0 backdrop-blur transition-all duration-300 hover:bg-background hover:text-foreground group-hover:opacity-100"
+                className={`grid h-9 w-9 place-items-center rounded-full opacity-0 backdrop-blur transition-all duration-300 group-hover:opacity-100 ${
+                  hasThumbnail
+                    ? "bg-black/35 text-white/80 hover:bg-white/15 hover:text-white"
+                    : "bg-background/50 text-muted-foreground hover:bg-background hover:text-foreground"
+                }`}
               >
                 <ExternalLink className="h-3.5 w-3.5" />
               </a>
@@ -798,14 +807,19 @@ function MemoryTile({
               <span className="rounded-full bg-background/55 px-2.5 py-1 text-[10px] font-medium capitalize text-muted-foreground backdrop-blur">
                 {item.platform}
               </span>
-
-              <span className="text-[10px] text-muted-foreground">
+              <span
+                className={`text-[10px] ${
+                  hasThumbnail ? "text-white/65" : "text-muted-foreground"
+                }`}
+              >
                 {item.savedAt}
               </span>
             </div>
 
             <h3
-              className={`font-semibold tracking-[-0.025em] text-foreground ${
+              className={`font-semibold tracking-[-0.025em] ${
+                hasThumbnail ? "text-white" : "text-foreground"
+              } ${
                 index % 7 === 0
                   ? "text-[22px] leading-[1.15]"
                   : "text-[17px] leading-[1.25]"
@@ -815,7 +829,9 @@ function MemoryTile({
             </h3>
 
             <p
-              className={`mt-3 text-[12.5px] leading-relaxed text-muted-foreground ${
+              className={`mt-3 text-[12.5px] leading-relaxed ${
+                hasThumbnail ? "text-white/78" : "text-muted-foreground"
+              } ${
                 index % 7 === 0
                   ? "line-clamp-6"
                   : index % 3 === 0
@@ -831,7 +847,11 @@ function MemoryTile({
                 {visibleTags.map((tag) => (
                   <span
                     key={tag}
-                    className="rounded-full border border-border/60 bg-background/40 px-2.5 py-1 text-[10px] text-muted-foreground backdrop-blur"
+                    className={`rounded-full border px-2.5 py-1 text-[10px] backdrop-blur ${
+                      hasThumbnail
+                        ? "border-white/15 bg-black/25 text-white/75"
+                        : "border-border/60 bg-background/40 text-muted-foreground"
+                    }`}
                   >
                     #{tag}
                   </span>

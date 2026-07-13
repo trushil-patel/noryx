@@ -7,6 +7,7 @@ type BackendKnowledgeItem = {
   platform: string;
   title: string | null;
   summary: string | null;
+  thumbnail_url?: string | null;
   key_takeaways?: string[] | null;
   why_it_matters: string | null;
   similarity?: number;
@@ -114,6 +115,7 @@ function normalizeKnowledgeItem(
     url: item.original_url,
     author: source,
     savedAt: getRelativeTime(item.created_at),
+    thumbnailUrl: item.thumbnail_url ?? null,
     createdAt: item.created_at,
     updatedAt: item.updated_at,
     readTime:

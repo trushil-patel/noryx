@@ -1,11 +1,10 @@
 import re
 from html import unescape
-from urllib.parse import urlparse
 import trafilatura
 from bs4 import BeautifulSoup
 from memora.models import ContentType, HomepageData, KnowledgeDocument
 from memora.services.extraction.fetcher import fetch_page
-
+from urllib.parse import urljoin, urlparse
 
 def _clean(value: str | None) -> str:
     return re.sub(r"\s+", " ", unescape(value or "")).strip()
@@ -15,6 +14,17 @@ def _meta(soup: BeautifulSoup, **attrs: str) -> str | None:
     element = soup.find("meta", attrs=attrs)
     return _clean(element.get("content")) if element and element.get("content") else None
 
+def _thumbnail(url: str, soup: BeautifulSoup) -> str | None:
+    image = (
+        _meta(soup, property="og:image")
+        or _meta(soup, attrs={"name": "twitter:image"})
+        or _meta(soup, attrs={"property": "twitter:image"})
+    )
+
+    if not image:
+        return None
+
+    return urljoin(url, image)
 
 def _classify(url: str, soup: BeautifulSoup) -> ContentType:
     parsed = urlparse(url)
@@ -41,6 +51,7 @@ async def build_knowledge_document(url: str) -> KnowledgeDocument:
     soup = BeautifulSoup(html, "html.parser")
     page_title = _clean(soup.title.string if soup.title else "") or None
     description = _meta(soup, name="description") or _meta(soup, property="og:description")
+    thumbnail_url = _thumbnail(url, soup)
     kind = _classify(url, soup)
     if kind in {"homepage", "blog"}:
         navigation = [_clean(x.get_text()) for x in soup.select("nav a")][0:20]
@@ -56,4 +67,4 @@ async def build_knowledge_document(url: str) -> KnowledgeDocument:
         if len(content) < 300:
             content = ". ".join(x for x in [page_title, description, _meta(soup, property="og:title")] if x)
         method = "article" if content else "fallback"
-    return KnowledgeDocument(url=url, content_type=kind, extraction_method=method, page_title=page_title, description=description, readable_title=page_title, content=content, homepage_data=data, confidence=0.85 if len(content) > 300 else 0.45)
+    return KnowledgeDocument(url=url, content_type=kind, extraction_method=method, page_title=page_title, description=description,thumbnail_url=thumbnail_url, readable_title=page_title, content=content, homepage_data=data, confidence=0.85 if len(content) > 300 else 0.45)

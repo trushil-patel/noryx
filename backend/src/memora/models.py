@@ -26,6 +26,7 @@ class KnowledgeDocument(BaseModel):
     page_title: str | None
     description: str | None
     readable_title: str | None
+    thumbnail_url: str | None
     content: str
     homepage_data: HomepageData | None
     confidence: float = Field(ge=0, le=1)

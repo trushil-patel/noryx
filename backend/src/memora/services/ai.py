@@ -28,133 +28,130 @@ async def test_connection() -> str:
 async def generate_metadata(
     document: KnowledgeDocument,
 ) -> GeneratedMetadata:
+    content = " ".join(document.content.split())
+    title_context = document.page_title or document.readable_title or "Not available"
+    description_context = document.description or "Not available"
+
     prompt = f"""
-You are Memora AI.
+You are Memora AI, a precise personal knowledge assistant.
 
-Memora is an AI memory for knowledge people discover
-online.
+Read the source content carefully and create a saved memory that helps the user find,
+understand, and reuse this content later.
 
-Your task is to transform the extracted source into an
-accurate, searchable memory.
+Use ONLY the supplied source. Do not invent names, tools, facts, numbers, dates, steps,
+features, or conclusions.
 
-Use only the supplied knowledge document.
-Never invent details.
-Never assume facts that are not supported by the content.
+SOURCE:
+URL: {document.url}
+Content type: {document.content_type}
+Extraction method: {document.extraction_method}
+Extraction confidence: {document.confidence}
+Page title: {title_context}
+Description: {description_context}
 
-CONTENT TYPE:
-{document.content_type}
+CONTENT:
+{content[:24000]}
 
-SOURCE URL:
-{document.url}
+TASK:
+Return a strong memory object with title, summary, key_takeaways, why_it_matters, and tags.
 
-PAGE TITLE:
-{document.page_title or "Not available"}
+SUMMARY RULES:
+- Write 4 to 7 useful sentences.
+- Explain the real topic, not just the website/page.
+- Include important tools, examples, claims, steps, people, products, or lessons when present.
+- If the content is a list, preserve the list topic and important items.
+- If the content is short or incomplete, be honest and summarize only the visible title/description/content.
+- Do not write generic phrases like "this content discusses various topics".
 
-DESCRIPTION:
-{document.description or "Not available"}
+TAKEAWAY RULES:
+- Generate 4 to 6 takeaways.
+- Each takeaway must be specific and useful.
+- Prefer action-oriented or recall-friendly wording.
+- Do not repeat the summary.
 
-EXTRACTED CONTENT:
-{document.content[:12000]}
-
-MEMORY RULES:
-- The title must describe the knowledge, not merely the
-  website.
-- Keep the title clear and under 80 characters.
-- The summary must explain the main subject accurately.
-- Generate 3 to 5 useful key takeaways.
-- Explain why this knowledge could be useful later.
-- Be conservative when the extracted content is incomplete.
-- Never invent transcript details, names, statistics,
-  features, dates, or conclusions.
+WHY IT MATTERS:
+- Write 2 to 3 sentences.
+- Explain why this memory may be useful later for search, learning, decisions, work, creativity, or research.
 
 TAG RULES:
-- Generate 5 to 8 accurate search tags.
-- Use only concepts clearly supported by the extracted
-  content.
-- Include both broad topics and specific concepts.
-- Include important visible entities such as products,
-  tools, technologies, organizations, people, locations,
-  frameworks, platforms, or events.
-- Include common abbreviations only when explicitly present
-  or unambiguously supported.
-- Prefer short, searchable tags.
-- Use lowercase.
-- Avoid duplicate or nearly identical tags.
-- Avoid generic tags such as "content", "website",
-  "article", "information", "internet", "post", or "video".
-- Do not create speculative tags.
-- Choose words users are likely to remember and search for
-  later.
+- Generate 6 to 10 lowercase search tags.
+- Include broad topics and specific terms.
+- Include products, tools, people, companies, frameworks, technologies, places, exams, or methods when present.
+- Include terms a user may actually search later.
+- Avoid generic tags: content, post, article, video, website, internet, information, page, link.
+- Do not invent unsupported tags.
+
+TITLE RULES:
+- Maximum 80 characters.
+- Make it specific.
+- Do not use clickbait.
 """
 
     last_error: Exception | None = None
 
     for attempt in range(3):
         try:
-            response = (
-                await _client().aio.models.generate_content(
-                    model=get_settings().gemini_model,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        response_mime_type=(
-                            "application/json"
-                        ),
-                        response_schema=GeneratedMetadata,
-                    ),
-                )
+            response = await _client().aio.models.generate_content(
+                model=get_settings().gemini_model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=GeneratedMetadata,
+                ),
             )
 
             if not response.text:
-                raise RuntimeError(
-                    "Gemini returned an empty metadata response"
-                )
+                raise RuntimeError("Gemini returned an empty metadata response")
 
-            result = (
-                GeneratedMetadata.model_validate_json(
-                    response.text
-                )
-            )
+            result = GeneratedMetadata.model_validate_json(response.text)
 
-            result.title = result.title.strip()[:80]
-            result.summary = result.summary.strip()
+            result.title = " ".join(result.title.split())[:80]
+            result.summary = " ".join(result.summary.split())
 
             result.key_takeaways = [
-                takeaway.strip()
+                " ".join(takeaway.split())
                 for takeaway in result.key_takeaways
                 if takeaway.strip()
-            ][:5]
+            ][:6]
 
-            result.why_it_matters = (
-                result.why_it_matters.strip()
-            )
+            result.why_it_matters = " ".join(result.why_it_matters.split())
 
-            result.tags = list(
-                dict.fromkeys(
-                    tag.strip().lower()
+            blocked_tags = {
+                "content",
+                "post",
+                "article",
+                "video",
+                "website",
+                "internet",
+                "information",
+                "page",
+                "link",
+            }
+
+            result.tags = [
+                tag
+                for tag in dict.fromkeys(
+                    " ".join(tag.lower().strip().split())
                     for tag in result.tags
                     if tag.strip()
                 )
-            )[:8]
+                if tag not in blocked_tags and len(tag) <= 40
+            ][:10]
 
             if not result.title:
-                raise RuntimeError(
-                    "Gemini returned an empty title"
-                )
+                raise RuntimeError("Gemini returned an empty title")
 
-            if not result.summary:
-                raise RuntimeError(
-                    "Gemini returned an empty summary"
-                )
+            if len(result.summary) < 80:
+                raise RuntimeError("Gemini returned a weak summary")
 
-            if not result.key_takeaways:
-                raise RuntimeError(
-                    "Gemini returned no key takeaways"
-                )
+            if len(result.key_takeaways) < 3:
+                raise RuntimeError("Gemini returned too few takeaways")
 
             if not result.why_it_matters:
-                raise RuntimeError(
-                    "Gemini returned an empty explanation"
-                )
+                raise RuntimeError("Gemini returned an empty why_it_matters")
+
+            if len(result.tags) < 3:
+                raise RuntimeError("Gemini returned too few tags")
 
             return result
 
@@ -162,9 +159,7 @@ TAG RULES:
             last_error = exc
 
             if attempt < 2:
-                await asyncio.sleep(
-                    1.5 * (attempt + 1)
-                )
+                await asyncio.sleep(1.5 * (attempt + 1))
 
     raise RuntimeError(
         "Gemini metadata generation failed after retries"
@@ -173,23 +168,30 @@ TAG RULES:
 
 def embedding_text(
     metadata: GeneratedMetadata,
+    document: KnowledgeDocument | None = None,
 ) -> str:
-    return "\n".join(
-        [
-            f"Title: {metadata.title}",
-            f"Summary: {metadata.summary}",
-            "Key takeaways:",
-            *[
-                f"- {takeaway}"
-                for takeaway in metadata.key_takeaways
-            ],
-            (
-                "Why it matters: "
-                f"{metadata.why_it_matters}"
-            ),
-            f"Tags: {', '.join(metadata.tags)}",
-        ]
-    )
+    parts = [
+        f"Title: {metadata.title}",
+        f"Summary: {metadata.summary}",
+        "Key takeaways:",
+        *[f"- {takeaway}" for takeaway in metadata.key_takeaways],
+        f"Why it matters: {metadata.why_it_matters}",
+        f"Tags: {', '.join(metadata.tags)}",
+    ]
+
+    if document:
+        raw_content = " ".join(document.content.split())[:12000]
+        parts.extend(
+            [
+                f"Source URL: {document.url}",
+                f"Content type: {document.content_type}",
+                f"Page title: {document.page_title or ''}",
+                f"Description: {document.description or ''}",
+                f"Original extracted content: {raw_content}",
+            ]
+        )
+
+    return "\n".join(parts)
 
 
 async def generate_document_embedding(

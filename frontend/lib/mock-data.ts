@@ -24,6 +24,7 @@ export interface KnowledgeItem {
   bookmarked?: boolean;
   readTime?: string;
   thumbnailHue?: number;
+  thumbnailUrl?: string | null;
 }
 
 export const platformMeta: Record<Platform, { label: string; color: string; dot: string }> = {
