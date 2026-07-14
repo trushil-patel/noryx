@@ -1,6 +1,6 @@
 ﻿from datetime import UTC, datetime
 import re
-from urllib.parse import urlparse
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, status
@@ -18,7 +18,7 @@ from memora.supabase import admin_client
 
 router = APIRouter(prefix="/api/knowledge", tags=["knowledge"])
 
-SELECT = "id,user_id,original_url,platform,title,summary,key_takeaways,why_it_matters,thumbnail_url,status,source_type,created_at,updated_at,knowledge_tags(id,tag)"
+SELECT = "id,user_id,original_url,canonical_url,platform,title,summary,key_takeaways,why_it_matters,thumbnail_url,status,source_type,created_at,updated_at,knowledge_tags(id,tag)"
 
 STOP_WORDS = {
     "a",
@@ -57,6 +57,59 @@ def search_terms(query: str) -> list[str]:
     ]
 
     return list(dict.fromkeys(terms))
+
+
+def canonical_url(value: str) -> str:
+    parsed = urlparse(value.strip())
+    scheme = (parsed.scheme or "https").lower()
+    host = (parsed.hostname or "").lower()
+
+    if host.startswith("www."):
+        host = host[4:]
+
+    netloc = host
+    if parsed.port:
+        netloc = f"{host}:{parsed.port}"
+
+    path = parsed.path or "/"
+    if path != "/":
+        path = path.rstrip("/")
+
+    ignored_params = {
+        "fbclid",
+        "gclid",
+        "igshid",
+        "mc_cid",
+        "mc_eid",
+        "ref",
+        "si",
+    }
+
+    query_pairs = [
+        (key, val)
+        for key, val in parse_qsl(parsed.query, keep_blank_values=True)
+        if not key.lower().startswith("utm_")
+        and key.lower() not in ignored_params
+    ]
+
+    query = urlencode(query_pairs, doseq=True)
+
+    return urlunparse((scheme, netloc, path, "", query, ""))
+
+
+def find_existing_memory(
+    items: list[dict[str, object]],
+    url: str,
+) -> dict[str, object] | None:
+    normalized_url = canonical_url(url)
+
+    for item in items:
+        original_url = str(item.get("original_url") or "")
+
+        if original_url and canonical_url(original_url) == normalized_url:
+            return item
+
+    return None
 
 
 def platform(url: str) -> str:
@@ -424,10 +477,31 @@ async def capture(
     user: CurrentUser,
     background_tasks: BackgroundTasks,
 ) -> dict[str, object]:
-    url = str(body.url)
+    url = canonical_url(str(body.url))
     client = admin_client()
 
     try:
+        existing_items = (
+            client.table("knowledge_items")
+            .select(SELECT)
+            .eq("user_id", user.id)
+            .order("created_at", desc=True)
+            .limit(500)
+            .execute()
+            .data
+            or []
+        )
+
+        existing_item = find_existing_memory(existing_items, url)
+
+        if existing_item:
+            return {
+                "success": True,
+                "duplicate": True,
+                "warning": "This link is already saved in your library.",
+                "item": existing_item,
+            }
+
         document = await build_knowledge_document(url)
 
         if not document.content.strip():
@@ -564,3 +638,5 @@ async def capture(
                 "Nothing was saved."
             ),
         ) from exc
+
+
