@@ -1,21 +1,42 @@
-from datetime import UTC, datetime
+﻿from datetime import UTC, datetime
 from urllib.parse import urlparse
+from uuid import UUID
+
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, status
+
 from memora.auth import CurrentUser
 from memora.models import CaptureRequest
-from memora.services.extraction import build_knowledge_document
-from memora.supabase import admin_client
 from memora.services.ai import (
     embedding_text,
     generate_document_embedding,
     generate_metadata,
     generate_query_embedding,
 )
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, status
-from uuid import UUID
+from memora.services.extraction import build_knowledge_document
+from memora.supabase import admin_client
+
 router = APIRouter(prefix="/api/knowledge", tags=["knowledge"])
+
 SELECT = "id,user_id,original_url,platform,title,summary,key_takeaways,why_it_matters,thumbnail_url,status,source_type,created_at,updated_at,knowledge_tags(id,tag)"
-def vector_to_pgvector(values: list[float]) -> str:
-    return "[" + ",".join(str(float(value)) for value in values) + "]"
+
+
+def platform(url: str) -> str:
+    host = (urlparse(url).hostname or "").lower()
+
+    platforms = {
+        "youtube": ("youtube.com", "youtu.be"),
+        "reddit": ("reddit.com",),
+        "instagram": ("instagram.com",),
+        "linkedin": ("linkedin.com",),
+        "twitter": ("twitter.com", "x.com"),
+        "blog": ("medium.com", "substack.com"),
+    }
+
+    for name, domains in platforms.items():
+        if any(domain in host for domain in domains):
+            return name
+
+    return "article"
 
 
 async def complete_embedding_later(
@@ -29,29 +50,43 @@ async def complete_embedding_later(
             title=title,
         )
 
-        admin_client().table("knowledge_items").update(
-            {
-                "embedding": vector_to_pgvector(embedding),
-                "status": "completed",
-                "updated_at": datetime.now(UTC).isoformat(),
-            }
-        ).eq("id", memory_id).execute()
+        try:
+            admin_client().rpc(
+                "update_memory_embedding",
+                {
+                    "p_memory_id": memory_id,
+                    "p_embedding": embedding,
+                },
+            ).execute()
+            return
+
+        except Exception as rpc_exc:
+            print(
+                f"Embedding RPC update failed for {memory_id}: {rpc_exc}"
+            )
+            raise
 
     except Exception as exc:
         print(f"Embedding failed for {memory_id}: {exc}")
 
-        admin_client().table("knowledge_items").update(
-            {
-                "status": "embedding_failed",
-                "updated_at": datetime.now(UTC).isoformat(),
-            }
-        ).eq("id", memory_id).execute()
-def platform(url: str) -> str:
-    host = (urlparse(url).hostname or "").lower()
-    for name, domains in {"youtube": ("youtube.com", "youtu.be"), "reddit": ("reddit.com",), "instagram": ("instagram.com",), "linkedin": ("linkedin.com",), "twitter": ("twitter.com", "x.com"), "blog": ("medium.com", "substack.com")}.items():
-        if any(domain in host for domain in domains):
-            return name
-    return "article"
+        try:
+            (
+                admin_client()
+                .table("knowledge_items")
+                .update(
+                    {
+                        "status": "embedding_failed",
+                        "updated_at": datetime.now(UTC).isoformat(),
+                    }
+                )
+                .eq("id", memory_id)
+                .execute()
+            )
+        except Exception as update_exc:
+            print(
+                "Failed to mark embedding as failed "
+                f"for {memory_id}: {update_exc}"
+            )
 
 
 @router.get("/search")
@@ -76,9 +111,7 @@ async def search(
         )
 
     try:
-        query_embedding = (
-            await generate_query_embedding(query)
-        )
+        query_embedding = await generate_query_embedding(query)
 
         response = admin_client().rpc(
             "hybrid_search_knowledge_items",
@@ -99,16 +132,25 @@ async def search(
 
     except Exception as exc:
         raise HTTPException(
-            status_code=(
-                status.HTTP_500_INTERNAL_SERVER_ERROR
-            ),
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to search your memories.",
         ) from exc
 
+
 @router.get("")
 async def list_items(user: CurrentUser) -> dict[str, object]:
-    data = admin_client().table("knowledge_items").select(SELECT).eq("user_id", user.id).order("created_at", desc=True).execute().data
+    data = (
+        admin_client()
+        .table("knowledge_items")
+        .select(SELECT)
+        .eq("user_id", user.id)
+        .order("created_at", desc=True)
+        .execute()
+        .data
+    )
+
     return {"success": True, "items": data}
+
 
 @router.delete("/{memory_id}")
 async def delete_memory(
@@ -134,7 +176,7 @@ async def delete_memory(
                 detail="Memory not found.",
             )
 
-        response = (
+        (
             client.table("knowledge_items")
             .delete()
             .eq("id", str(memory_id))
@@ -155,6 +197,8 @@ async def delete_memory(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Unable to delete this memory.",
         ) from exc
+
+
 @router.post(
     "",
     status_code=status.HTTP_201_CREATED,
@@ -165,9 +209,9 @@ async def capture(
     background_tasks: BackgroundTasks,
 ) -> dict[str, object]:
     url = str(body.url)
+    client = admin_client()
 
     try:
-        # Step 1: Fetch, extract and classify.
         document = await build_knowledge_document(url)
 
         if not document.content.strip():
@@ -175,7 +219,6 @@ async def capture(
                 "No readable content or metadata could be extracted from this source."
             )
 
-        # Step 2: Generate and validate AI metadata.
         metadata = await generate_metadata(document)
 
         title = metadata.title.strip()
@@ -187,9 +230,7 @@ async def capture(
             if takeaway.strip()
         ]
 
-        why_it_matters = (
-            metadata.why_it_matters.strip()
-        )
+        why_it_matters = metadata.why_it_matters.strip()
 
         tags = list(
             dict.fromkeys(
@@ -200,71 +241,75 @@ async def capture(
         )
 
         if not title:
-            raise ValueError(
-                "AI did not generate a memory title."
-            )
+            raise ValueError("AI did not generate a memory title.")
 
         if not summary:
-            raise ValueError(
-                "AI did not generate a memory summary."
-            )
+            raise ValueError("AI did not generate a memory summary.")
 
         if not key_takeaways:
-            raise ValueError(
-                "AI did not generate key takeaways."
-            )
+            raise ValueError("AI did not generate key takeaways.")
 
         if not why_it_matters:
             raise ValueError(
                 "AI did not explain why this memory matters."
             )
 
-        # Step 3: Build the complete embedding input.
         text_to_embed = embedding_text(metadata, document)
 
         if not text_to_embed.strip():
-            raise ValueError(
-                "The embedding input is empty."
-            )
+            raise ValueError("The embedding input is empty.")
 
-      
+        payload = {
+            "user_id": user.id,
+            "original_url": url,
+            "platform": platform(url),
+            "title": title,
+            "summary": summary,
+            "key_takeaways": key_takeaways,
+            "why_it_matters": why_it_matters,
+            "status": "processing",
+            "source_type": document.content_type,
+        }
 
-        # Step 5: Only now write to the database.
-        # The RPC inserts the item and tags atomically.
-        response = admin_client().rpc(
-            "create_completed_memory",
-            {
-                "p_user_id": user.id,
-                "p_original_url": url,
-                "p_platform": platform(url),
-                "p_title": title,
-                "p_summary": summary,
-                "p_key_takeaways": key_takeaways,
-                "p_why_it_matters": why_it_matters,
-                "p_source_type": document.content_type,
-                "p_embedding": None,
-                "p_tags": tags,
-            },
-        ).execute()
-
-        if not response.data:
-            raise RuntimeError(
-                "Database did not return the "
-                "created memory."
-            )
-        created_item = response.data[0]
-        background_tasks.add_task(
-            complete_embedding_later,
-            created_item["id"],
-            title,
-            text_to_embed,
-        )
         if document.thumbnail_url:
-            admin_client().table("knowledge_items").update(
-                {"thumbnail_url": document.thumbnail_url}
-            ).eq("id", created_item["id"]).eq("user_id", user.id).execute()
+            payload["thumbnail_url"] = document.thumbnail_url
 
-            created_item["thumbnail_url"] = document.thumbnail_url
+        try:
+            created_item = (
+                client.table("knowledge_items")
+                .insert(payload)
+                .execute()
+                .data[0]
+            )
+        except Exception as insert_exc:
+            print(f"Memory insert failed: {insert_exc}")
+            raise
+
+        try:
+            tag_rows = [
+                {
+                    "knowledge_item_id": created_item["id"],
+                    "tag": tag,
+                }
+                for tag in tags
+            ]
+
+            if tag_rows:
+                client.table("knowledge_tags").insert(tag_rows).execute()
+
+        except Exception as tag_exc:
+            print(
+                "Tag insert failed; deleting partial memory "
+                f"{created_item['id']}: {tag_exc}"
+            )
+            (
+                client.table("knowledge_items")
+                .delete()
+                .eq("id", created_item["id"])
+                .eq("user_id", user.id)
+                .execute()
+            )
+            raise
 
         created_item["knowledge_tags"] = [
             {
@@ -272,15 +317,20 @@ async def capture(
             }
             for tag in tags
         ]
-        created_item["status"] = "processing"
+
+        background_tasks.add_task(
+            complete_embedding_later,
+            created_item["id"],
+            title,
+            text_to_embed,
+        )
+
         return {
             "success": True,
             "item": created_item,
         }
 
     except ValueError as exc:
-        # Validation/extraction failure.
-        # Nothing has been written to the database.
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(exc),
@@ -290,8 +340,7 @@ async def capture(
         raise
 
     except Exception as exc:
-        # AI, embedding, network or database failure.
-        # If the RPC failed, PostgreSQL rolls back its transaction.
+        print(f"Capture failed for {url}: {exc}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=(
