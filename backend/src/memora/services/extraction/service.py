@@ -1,6 +1,7 @@
 import json
 import re
 from html import unescape
+from typing import Literal
 from urllib.parse import parse_qs, urljoin, urlparse
 
 import httpx
@@ -13,6 +14,9 @@ from memora.models import (
     KnowledgeDocument,
 )
 from memora.services.extraction.fetcher import fetch_page
+
+
+ExtractionMethod = Literal["article", "homepage", "fallback"]
 
 
 def _clean(value: str | None) -> str:
@@ -99,9 +103,7 @@ async def _build_youtube_document(url: str) -> KnowledgeDocument:
                     "format": "json",
                 },
                 headers={
-                    "User-Agent": (
-                        "Mozilla/5.0 (compatible; MemoraBot/2.0)"
-                    ),
+                    "User-Agent": "Mozilla/5.0 (compatible; MemoraBot/2.0)",
                     "Accept": "application/json",
                 },
             )
@@ -167,6 +169,35 @@ async def _build_youtube_document(url: str) -> KnowledgeDocument:
         )
 
 
+async def _reader_fallback(url: str) -> str:
+    try:
+        reader_urls = [
+            f"https://r.jina.ai/http://{url}",
+            f"https://r.jina.ai/http://{url.removeprefix('https://').removeprefix('http://')}",
+        ]
+
+        async with httpx.AsyncClient(timeout=20) as client:
+            for reader_url in reader_urls:
+                response = await client.get(
+                    reader_url,
+                    headers={
+                        "Accept": "text/plain",
+                        "User-Agent": "Mozilla/5.0",
+                    },
+                )
+
+                if response.status_code < 400:
+                    text = _clean(response.text)
+
+                    if len(text) > 300:
+                        return text
+
+        return ""
+
+    except Exception:
+        return ""
+
+
 def _json_ld_text(soup: BeautifulSoup) -> str:
     useful_values: list[str] = []
 
@@ -192,11 +223,13 @@ def _json_ld_text(soup: BeautifulSoup) -> str:
                         useful_values.append(nested)
                     elif isinstance(nested, dict):
                         name = nested.get("name")
+
                         if isinstance(name, str):
                             useful_values.append(name)
                     elif isinstance(nested, list):
                         for item in nested:
                             collect(item)
+
                 elif isinstance(nested, dict | list):
                     collect(nested)
 
@@ -454,6 +487,25 @@ async def build_knowledge_document(url: str) -> KnowledgeDocument:
     try:
         html = await fetch_page(url)
     except Exception as exc:
+        reader_content = await _reader_fallback(url)
+
+        if reader_content:
+            parsed = urlparse(url)
+            host = parsed.hostname or "Unknown website"
+
+            return KnowledgeDocument(
+                url=url,
+                content_type="unknown",
+                extraction_method="fallback",
+                page_title=host,
+                description="Extracted with reader fallback.",
+                readable_title=host,
+                thumbnail_url=None,
+                content=reader_content[:30000],
+                homepage_data=None,
+                confidence=0.65,
+            )
+
         return _fallback_document(url, str(exc))
 
     soup = BeautifulSoup(html, "html.parser")
@@ -524,6 +576,17 @@ async def build_knowledge_document(url: str) -> KnowledgeDocument:
             if part.strip()
         )
 
+    method: ExtractionMethod = "article"
+    confidence = 0.85
+
+    if len(content.strip()) < 500:
+        reader_content = await _reader_fallback(url)
+
+        if len(reader_content) > len(content):
+            content = reader_content[:30000]
+            method = "fallback"
+            confidence = 0.7
+
     if not content.strip():
         return _fallback_document(
             url,
@@ -532,20 +595,19 @@ async def build_knowledge_document(url: str) -> KnowledgeDocument:
 
     content = content[:30000]
 
-    confidence = 0.85
-    method: str = "article"
-
-    if len(content) < 500:
+    if kind in {"homepage", "blog"}:
+        method = "homepage"
+    elif len(content) < 500:
+        method = "fallback"
         confidence = 0.45
-        method = "fallback"
     elif not extracted and visible_content:
-        confidence = 0.65
         method = "fallback"
+        confidence = 0.65
 
     return KnowledgeDocument(
         url=url,
         content_type=kind,
-        extraction_method=method,  # type: ignore[arg-type]
+        extraction_method=method,
         page_title=page_title,
         description=description,
         readable_title=page_title,

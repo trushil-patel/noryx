@@ -1,6 +1,5 @@
 from datetime import UTC, datetime
 from urllib.parse import urlparse
-from fastapi import APIRouter, HTTPException, Query, status
 from memora.auth import CurrentUser
 from memora.models import CaptureRequest
 from memora.services.extraction import build_knowledge_document
@@ -15,6 +14,10 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, status
 from uuid import UUID
 router = APIRouter(prefix="/api/knowledge", tags=["knowledge"])
 SELECT = "id,user_id,original_url,platform,title,summary,key_takeaways,why_it_matters,thumbnail_url,status,source_type,created_at,updated_at,knowledge_tags(id,tag)"
+def vector_to_pgvector(values: list[float]) -> str:
+    return "[" + ",".join(str(float(value)) for value in values) + "]"
+
+
 async def complete_embedding_later(
     memory_id: str,
     title: str,
@@ -22,22 +25,27 @@ async def complete_embedding_later(
 ) -> None:
     try:
         embedding = await generate_document_embedding(
-            text=text_to_embed,
+            text=text_to_embed[:8000],
             title=title,
         )
 
         admin_client().table("knowledge_items").update(
             {
-                "embedding": embedding,
+                "embedding": vector_to_pgvector(embedding),
                 "status": "completed",
                 "updated_at": datetime.now(UTC).isoformat(),
             }
         ).eq("id", memory_id).execute()
 
-    except Exception:
-        # Do not break capture if embedding fails.
-        # The memory is still saved; search may not include it until retried.
-        return
+    except Exception as exc:
+        print(f"Embedding failed for {memory_id}: {exc}")
+
+        admin_client().table("knowledge_items").update(
+            {
+                "status": "embedding_failed",
+                "updated_at": datetime.now(UTC).isoformat(),
+            }
+        ).eq("id", memory_id).execute()
 def platform(url: str) -> str:
     host = (urlparse(url).hostname or "").lower()
     for name, domains in {"youtube": ("youtube.com", "youtu.be"), "reddit": ("reddit.com",), "instagram": ("instagram.com",), "linkedin": ("linkedin.com",), "twitter": ("twitter.com", "x.com"), "blog": ("medium.com", "substack.com")}.items():
