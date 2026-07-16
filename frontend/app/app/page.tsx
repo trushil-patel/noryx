@@ -32,7 +32,7 @@ import {
   Tag,
   Trash2,
   Video,
-  Zap,
+  Flame,
 } from "lucide-react";
 import { FaLinkedin } from "react-icons/fa";
 import {
@@ -79,6 +79,89 @@ const memoryColors = [
   },
 ];
 
+function calculateLearningStreak(items: KnowledgeItem[]): number {
+  const savedDays = new Set(
+    items
+      .map((item) => getLocalDateKey(item.createdAt))
+      .filter((dateKey): dateKey is string => Boolean(dateKey)),
+  );
+
+  if (savedDays.size === 0) {
+    return 0;
+  }
+
+  const today = startOfLocalDay(new Date());
+  const yesterday = addDays(today, -1);
+
+  let cursor: Date;
+
+  if (savedDays.has(formatLocalDateKey(today))) {
+    cursor = today;
+  } else if (savedDays.has(formatLocalDateKey(yesterday))) {
+    cursor = yesterday;
+  } else {
+    const latestSavedDay = Array.from(savedDays).sort().at(-1);
+
+    if (!latestSavedDay) {
+      return 0;
+    }
+
+    cursor = parseLocalDateKey(latestSavedDay);
+  }
+
+  let streak = 0;
+
+  while (savedDays.has(formatLocalDateKey(cursor))) {
+    streak += 1;
+    cursor = addDays(cursor, -1);
+  }
+
+  return streak;
+}
+
+function getLocalDateKey(date?: string): string | null {
+  if (!date) {
+    return null;
+  }
+
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return null;
+  }
+
+  return formatLocalDateKey(parsedDate);
+}
+
+function startOfLocalDay(date: Date): Date {
+  return new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+  );
+}
+
+function addDays(date: Date, days: number): Date {
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + days);
+  return nextDate;
+}
+
+function formatLocalDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function parseLocalDateKey(dateKey: string): Date {
+  const [year, month, day] = dateKey
+    .split("-")
+    .map(Number);
+
+  return new Date(year, month - 1, day);
+}
 function PlatformIcon({ platform }: { platform: KnowledgeItem["platform"] }) {
   const iconClassName = "h-4 w-4";
 
@@ -225,6 +308,8 @@ function LibraryPageContent() {
       items.flatMap((item) => item.tags),
     ).size;
 
+    const learningStreak = calculateLearningStreak(items);
+
     return [
       {
         label: "Saved items",
@@ -245,10 +330,10 @@ function LibraryPageContent() {
         icon: Hash,
       },
       {
-        label: "Learning streak",
-        value: items.length > 0 ? 1 : 0,
+        label: "Save streak",
+        value: learningStreak,
         suffix: "d",
-        icon: Zap,
+        icon: Flame,
       },
     ];
   }, [items]);
