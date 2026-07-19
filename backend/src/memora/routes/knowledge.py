@@ -1,5 +1,6 @@
-﻿from datetime import UTC, datetime
-import re
+﻿import re
+from collections import Counter
+from datetime import UTC, datetime
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 from uuid import UUID
 
@@ -18,7 +19,11 @@ from memora.supabase import admin_client
 
 router = APIRouter(prefix="/api/knowledge", tags=["knowledge"])
 
-SELECT = "id,user_id,original_url,canonical_url,platform,title,summary,key_takeaways,why_it_matters,thumbnail_url,status,source_type,created_at,updated_at,knowledge_tags(id,tag)"
+SELECT = (
+    "id,user_id,original_url,canonical_url,platform,title,summary,key_takeaways,"
+    "why_it_matters,thumbnail_url,status,source_type,created_at,updated_at,"
+    "knowledge_tags(id,tag)"
+)
 
 STOP_WORDS = {
     "a",
@@ -48,6 +53,15 @@ STOP_WORDS = {
     "with",
 }
 
+SEARCH_CONCEPTS = (
+    ("vibe code", "vibe coder", "vibe coding", "ai coding", "ai coder"),
+    ("ai", "artificial intelligence"),
+    ("ml", "machine learning"),
+    ("ux", "user experience"),
+    ("js", "javascript"),
+    ("ts", "typescript"),
+)
+
 
 def search_terms(query: str) -> list[str]:
     terms = [
@@ -57,6 +71,170 @@ def search_terms(query: str) -> list[str]:
     ]
 
     return list(dict.fromkeys(terms))
+
+
+def term_roots(term: str) -> set[str]:
+    roots = {term}
+
+    if len(term) > 4 and term.endswith("ies"):
+        roots.add(f"{term[:-3]}y")
+    if len(term) > 4 and term.endswith("s"):
+        roots.add(term[:-1])
+    if len(term) > 5 and term.endswith("ing"):
+        base = term[:-3]
+        roots.update({base, f"{base}e"})
+        if len(base) > 2 and base[-1] == base[-2]:
+            roots.add(base[:-1])
+    if len(term) > 4 and term.endswith("er"):
+        base = term[:-2]
+        roots.update({base, f"{base}e"})
+    if len(term) > 5 and term.endswith("ed"):
+        base = term[:-2]
+        roots.update({base, f"{base}e"})
+
+    return {root for root in roots if len(root) >= 2}
+
+
+def edit_distance(first: str, second: str) -> int:
+    if first == second:
+        return 0
+    if not first:
+        return len(second)
+    if not second:
+        return len(first)
+
+    previous = list(range(len(second) + 1))
+    for first_index, first_character in enumerate(first, start=1):
+        current = [first_index]
+        for second_index, second_character in enumerate(second, start=1):
+            current.append(
+                min(
+                    current[-1] + 1,
+                    previous[second_index] + 1,
+                    previous[second_index - 1]
+                    + (first_character != second_character),
+                )
+            )
+        previous = current
+    return previous[-1]
+
+
+def token_match_quality(query_term: str, candidate: str) -> float:
+    if query_term == candidate:
+        return 1.0
+    if term_roots(query_term) & term_roots(candidate):
+        return 0.92
+
+    longest = max(len(query_term), len(candidate))
+    if longest < 4:
+        return 0.0
+    distance = edit_distance(query_term, candidate)
+    allowed_distance = 1 if longest <= 6 else 2
+    if distance <= allowed_distance:
+        return 0.82 - (0.08 * (distance - 1))
+    return 0.0
+
+
+def item_search_vocabulary(item: dict[str, object]) -> list[str]:
+    tags = item.get("knowledge_tags") or []
+    tag_text = " ".join(
+        str(tag.get("tag", "")) for tag in tags if isinstance(tag, dict)
+    )
+    return search_terms(
+        " ".join(
+            [
+                str(item.get("title") or ""),
+                tag_text,
+                str(item.get("platform") or ""),
+            ]
+        )
+    )
+
+
+def correct_query_terms(query: str, items: list[dict[str, object]]) -> list[str]:
+    original_terms = search_terms(query)
+    has_coding_context = any(
+        "code" in term_roots(term) for term in original_terms
+    )
+    vocabulary = Counter(
+        term for item in items for term in item_search_vocabulary(item)
+    )
+    corrected: list[str] = []
+
+    for term in original_terms:
+        if term == "vice" and has_coding_context:
+            corrected.append("vibe")
+            continue
+        if term in vocabulary or len(term) < 4:
+            corrected.append(term)
+            continue
+
+        candidates = [
+            candidate
+            for candidate in vocabulary
+            if token_match_quality(term, candidate) >= 0.74
+        ]
+        if not candidates:
+            corrected.append(term)
+            continue
+
+        best = min(
+            candidates,
+            key=lambda candidate: (
+                edit_distance(term, candidate),
+                -vocabulary[candidate],
+                abs(len(term) - len(candidate)),
+            ),
+        )
+        corrected.append(best)
+
+    return list(dict.fromkeys(corrected))
+
+
+def build_search_plan(
+    query: str,
+    items: list[dict[str, object]],
+) -> tuple[str, list[str], list[str], list[str]]:
+    original_terms = search_terms(query)
+    corrected_terms = correct_query_terms(query, items)
+    corrected_query = " ".join(corrected_terms) or query
+    phrases = [query.lower(), corrected_query]
+    expanded_terms = list(dict.fromkeys([*original_terms, *corrected_terms]))
+
+    corrected_roots = set().union(*(term_roots(term) for term in corrected_terms))
+    for concept in SEARCH_CONCEPTS:
+        concept_matches = any(
+            all(
+                any(
+                    token_match_quality(term, candidate) >= 0.82
+                    for candidate in corrected_terms
+                )
+                for term in search_terms(phrase)
+            )
+            for phrase in concept
+        )
+        is_vibe_code = (
+            "vibe" in corrected_terms
+            and "code" in corrected_roots
+            and concept[0] == "vibe code"
+        )
+        if concept_matches or is_vibe_code:
+            phrases.extend(concept)
+            for phrase in concept:
+                expanded_terms.extend(search_terms(phrase))
+
+    phrases = list(
+        dict.fromkeys(" ".join(phrase.split()) for phrase in phrases if phrase)
+    )
+    expanded_terms = list(dict.fromkeys(expanded_terms))
+    semantic_query = corrected_query
+    related_phrases = [
+        phrase for phrase in phrases if phrase != corrected_query
+    ][:5]
+    if related_phrases:
+        semantic_query += ". Related terms: " + ", ".join(related_phrases)
+
+    return semantic_query, phrases, corrected_terms, expanded_terms
 
 
 def canonical_url(value: str) -> str:
@@ -161,8 +339,9 @@ def item_text(item: dict[str, object]) -> str:
 
 def relevance_score(
     item: dict[str, object],
-    query: str,
-    terms: list[str],
+    phrases: list[str],
+    core_terms: list[str],
+    expanded_terms: list[str],
 ) -> float:
     text = item_text(item)
     title = str(item.get("title") or "").lower()
@@ -178,7 +357,6 @@ def relevance_score(
     ]
     tag_text = " ".join(tag_values)
 
-    normalized_query = query.lower()
     similarity = item.get("similarity")
     semantic = (
         float(similarity)
@@ -188,42 +366,73 @@ def relevance_score(
 
     score = 0.0
 
-    if normalized_query in title:
+    def contains_phrase(value: str, phrase: str) -> bool:
+        normalized_phrase = " ".join(search_terms(phrase))
+        if not normalized_phrase:
+            return False
+        if " " not in normalized_phrase:
+            return normalized_phrase in search_terms(value)
+        return normalized_phrase in " ".join(search_terms(value))
+
+    if any(contains_phrase(title, phrase) for phrase in phrases):
+        score += 9.0
+    if any(contains_phrase(tag_text, phrase) for phrase in phrases):
         score += 8.0
-    if normalized_query in tag_text:
-        score += 7.0
-    if normalized_query in summary:
-        score += 4.0
-    if normalized_query in platform_value or normalized_query in url:
+    if any(contains_phrase(summary, phrase) for phrase in phrases):
+        score += 5.0
+    if any(
+        contains_phrase(platform_value, phrase) or contains_phrase(url, phrase)
+        for phrase in phrases
+    ):
         score += 3.0
+
+    title_tokens = search_terms(title)
+    tag_tokens = search_terms(tag_text)
+    summary_tokens = search_terms(summary)
+    text_tokens = search_terms(text)
+
+    def best_quality(term: str, candidates: list[str]) -> float:
+        return max(
+            (token_match_quality(term, candidate) for candidate in candidates),
+            default=0.0,
+        )
 
     matched_terms = 0
 
-    for term in terms:
-        if term in title:
-            score += 3.0
-            matched_terms += 1
-        elif term in tag_text:
-            score += 2.5
-            matched_terms += 1
-        elif term in summary:
-            score += 1.5
-            matched_terms += 1
-        elif term in text:
-            score += 1.0
+    for term in core_terms:
+        field_score = max(
+            best_quality(term, title_tokens) * 3.5,
+            best_quality(term, tag_tokens) * 3.0,
+            best_quality(term, summary_tokens) * 2.0,
+            best_quality(term, text_tokens) * 1.25,
+        )
+        if field_score >= 0.9:
+            score += field_score
             matched_terms += 1
 
-    if terms:
-        coverage = matched_terms / len(terms)
-        score += coverage * 4.0
+    related_bonus = 0.0
+    for term in expanded_terms:
+        if term in core_terms:
+            continue
+        related_bonus += max(
+            best_quality(term, title_tokens) * 0.8,
+            best_quality(term, tag_tokens) * 0.7,
+            best_quality(term, summary_tokens) * 0.4,
+        )
+    score += min(related_bonus, 3.0)
 
-        if matched_terms == 0 and semantic < 0.8:
+    if core_terms:
+        coverage = matched_terms / len(core_terms)
+        score += coverage * 5.0
+        semantic_floor = 0.58 if len(core_terms) <= 3 else 0.64
+
+        if matched_terms == 0 and semantic < semantic_floor:
             return 0.0
 
-        if len(terms) >= 2 and coverage < 0.5 and semantic < 0.76:
+        if len(core_terms) >= 2 and coverage < 0.5 and semantic < 0.62:
             return 0.0
 
-    score += semantic * 2.0
+    score += semantic * 6.0
 
     return score
 
@@ -260,13 +469,21 @@ def merge_search_items(
 
 def rerank_search_results(
     items: list[dict[str, object]],
-    query: str,
+    phrases: list[str],
+    core_terms: list[str],
+    expanded_terms: list[str],
     limit: int,
 ) -> list[dict[str, object]]:
-    terms = search_terms(query)
-
     scored = [
-        (relevance_score(item, query, terms), item)
+        (
+            relevance_score(
+                item,
+                phrases,
+                core_terms,
+                expanded_terms,
+            ),
+            item,
+        )
         for item in items
     ]
 
@@ -360,16 +577,23 @@ async def search(
             .select(SELECT)
             .eq("user_id", user.id)
             .order("created_at", desc=True)
-            .limit(300)
+            .limit(1000)
             .execute()
             .data
             or []
         )
 
+        (
+            semantic_query,
+            query_phrases,
+            core_terms,
+            expanded_terms,
+        ) = build_search_plan(query, exact_items)
+
         semantic_items: list[dict[str, object]] = []
 
         try:
-            query_embedding = await generate_query_embedding(query)
+            query_embedding = await generate_query_embedding(semantic_query)
 
             semantic_response = client.rpc(
                 "hybrid_search_knowledge_items",
@@ -377,8 +601,10 @@ async def search(
                     "query_text": query,
                     "query_embedding": query_embedding,
                     "match_user_id": user.id,
-                    "match_count": min(limit * 3, 50),
-                    "semantic_threshold": 0.7,
+                    "match_count": min(limit * 5, 100),
+                    "semantic_threshold": (
+                        0.55 if len(core_terms) <= 3 else 0.6
+                    ),
                 },
             ).execute()
 
@@ -389,13 +615,16 @@ async def search(
 
         items = rerank_search_results(
             merge_search_items(exact_items, semantic_items),
-            query,
+            query_phrases,
+            core_terms,
+            expanded_terms,
             limit,
         )
 
         return {
             "success": True,
             "query": query,
+            "interpreted_query": " ".join(core_terms),
             "items": items,
         }
 
