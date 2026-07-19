@@ -26,6 +26,8 @@ export type KnowledgeResponse = {
   items: BackendKnowledgeItem[];
 };
 
+let pendingKnowledgeItemsRequest: Promise<KnowledgeItem[]> | null = null;
+
 type CreateKnowledgeResponse = {
   success: boolean;
   item: {
@@ -145,11 +147,19 @@ export function normalizeKnowledgeItem(
 export async function getKnowledgeItems(): Promise<
   KnowledgeItem[]
 > {
-  const data = await backendRequest<KnowledgeResponse>(
-    "/api/knowledge",
-  );
+  if (pendingKnowledgeItemsRequest) {
+    return pendingKnowledgeItemsRequest;
+  }
 
-  return data.items.map(normalizeKnowledgeItem);
+  pendingKnowledgeItemsRequest = backendRequest<KnowledgeResponse>(
+    "/api/knowledge",
+  ).then((data) => data.items.map(normalizeKnowledgeItem));
+
+  try {
+    return await pendingKnowledgeItemsRequest;
+  } finally {
+    pendingKnowledgeItemsRequest = null;
+  }
 }
 
 export async function searchKnowledgeItems(
