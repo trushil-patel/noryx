@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   useEffect,
   useMemo,
@@ -290,7 +291,7 @@ export default function InsightsPage() {
             </ChartCard>
 
             <ChartCard
-              title="Source breakdown"
+              title="Sources"
               description="Where your knowledge comes from"
             >
               <div className="flex h-full flex-col">
@@ -331,25 +332,29 @@ export default function InsightsPage() {
                     (platform) => (
                       <li
                         key={platform.platform}
-                        className="flex items-center gap-2 text-[12px]"
                       >
-                        <span
-                          className="h-2 w-2 rounded-full"
-                          style={{
-                            background: platform.color,
-                          }}
-                        />
+                        <Link
+                          href={`/app?source=${encodeURIComponent(platform.platform)}`}
+                          className="flex items-center gap-2 rounded-lg px-2 py-1 text-[12px] transition-colors hover:bg-muted"
+                        >
+                          <span
+                            className="h-2 w-2 rounded-full"
+                            style={{
+                              background: platform.color,
+                            }}
+                          />
 
-                        <span className="flex-1">
-                          {platform.name}
-                        </span>
+                          <span className="flex-1">
+                            {platform.name}
+                          </span>
 
-                        <span className="text-muted-foreground">
-                          {platform.value}{" "}
-                          {platform.value === 1
-                            ? "item"
-                            : "items"}
-                        </span>
+                          <span className="text-muted-foreground">
+                            {platform.value}{" "}
+                            {platform.value === 1
+                              ? "item"
+                              : "items"}
+                          </span>
+                        </Link>
                       </li>
                     ),
                   )}
@@ -410,7 +415,7 @@ export default function InsightsPage() {
 
             <div className="rounded-2xl border border-border bg-surface p-5">
               <h2 className="text-sm font-semibold tracking-tight">
-                Top interests
+                Top topics
               </h2>
 
               <p className="text-[12px] text-muted-foreground">
@@ -422,37 +427,42 @@ export default function InsightsPage() {
                   {insights.topCategories.map(
                     (category, index) => (
                       <li key={category.name}>
-                        <div className="mb-1.5 flex items-center justify-between gap-3 text-[12.5px]">
-                          <span className="min-w-0 truncate font-medium">
-                            #{category.name}
-                          </span>
+                        <Link
+                          href={`/app?tag=${encodeURIComponent(category.name)}`}
+                          className="group block rounded-lg px-2 py-1.5 transition-colors hover:bg-muted"
+                        >
+                          <div className="mb-1.5 flex items-center justify-between gap-3 text-[12.5px]">
+                            <span className="min-w-0 truncate font-medium">
+                              #{category.name}
+                            </span>
 
-                          <span className="shrink-0 text-muted-foreground">
-                            {category.count}
-                          </span>
-                        </div>
+                            <span className="shrink-0 text-muted-foreground">
+                              {category.count}
+                            </span>
+                          </div>
 
-                        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                          <motion.div
-                            initial={{
-                              width: 0,
-                            }}
-                            animate={{
-                              width: `${category.percentage}%`,
-                            }}
-                            transition={{
-                              duration: 0.7,
-                              delay: index * 0.05,
-                              ease: [
-                                0.22,
-                                1,
-                                0.36,
-                                1,
-                              ],
-                            }}
-                            className="h-full rounded-full bg-accent"
-                          />
-                        </div>
+                          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                            <motion.div
+                              initial={{
+                                width: 0,
+                              }}
+                              animate={{
+                                width: `${category.percentage}%`,
+                              }}
+                              transition={{
+                                duration: 0.7,
+                                delay: index * 0.05,
+                                ease: [
+                                  0.22,
+                                  1,
+                                  0.36,
+                                  1,
+                                ],
+                              }}
+                              className="h-full rounded-full bg-accent"
+                            />
+                          </div>
+                        </Link>
                       </li>
                     ),
                   )}
@@ -797,11 +807,6 @@ function CountUp({
   const [displayValue, setDisplayValue] = useState(0);
 
   useEffect(() => {
-    if (value === 0) {
-      setDisplayValue(0);
-      return;
-    }
-
     let frameId = 0;
     const startedAt = performance.now();
     const duration = 550;

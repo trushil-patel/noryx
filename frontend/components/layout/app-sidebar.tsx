@@ -2,7 +2,6 @@
 
 import {
   useEffect,
-  useMemo,
   useState,
 } from "react";
 import Link from "next/link";
@@ -10,35 +9,22 @@ import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   BarChart3,
-  Bookmark,
-  Briefcase,
-  Hash,
   LayoutGrid,
   Folder,
-  MessageCircle,
   PlusCircle,
   Search,
   Settings,
-  Video,
   Users,
 } from "lucide-react";
 
 import { Logo } from "@/components/brand/logo";
 import { createSupabaseClient } from "@/lib/supabase/client";
-import { getKnowledgeItems } from "@/lib/api/knowledge";
-import type { KnowledgeItem } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
 type SidebarProfile = {
   name: string;
   email: string;
   avatarUrl: string | null;
-};
-
-type SidebarFilter = {
-  id: string;
-  label: string;
-  count: number;
 };
 
 const navigation = [
@@ -99,77 +85,11 @@ function getInitials(
     .join("");
 }
 
-function getPlatformLabel(
-  platform: string,
-): string {
-  switch (platform) {
-    case "youtube":
-      return "YouTube";
-
-    case "twitter":
-      return "X";
-
-    case "linkedin":
-      return "LinkedIn";
-
-    case "instagram":
-      return "Instagram";
-
-    case "reddit":
-      return "Reddit";
-
-    case "blog":
-      return "Blogs";
-
-    case "article":
-      return "Articles";
-
-    default:
-      return platform;
-  }
-}
-
-function SourceIcon({
-  platform,
-}: {
-  platform: string;
-}) {
-  if (platform === "youtube") {
-    return <Video className="h-3.5 w-3.5" />;
-  }
-
-  if (
-    [
-      "twitter",
-      "reddit",
-      "instagram",
-    ].includes(platform)
-  ) {
-    return (
-      <MessageCircle className="h-3.5 w-3.5" />
-    );
-  }
-
-  if (platform === "linkedin") {
-    return (
-      <Briefcase className="h-3.5 w-3.5" />
-    );
-  }
-
-  return <Bookmark className="h-3.5 w-3.5" />;
-}
-
 export function AppSidebar() {
   const pathname = usePathname();
 
   const [profile, setProfile] =
     useState<SidebarProfile | null>(null);
-
-  const [knowledgeItems, setKnowledgeItems] =
-    useState<KnowledgeItem[]>([]);
-
-  const [filtersLoading, setFiltersLoading] =
-    useState(true);
 
   useEffect(() => {
     const supabase = createSupabaseClient();
@@ -244,100 +164,6 @@ export function AppSidebar() {
     };
   }, []);
 
-  useEffect(() => {
-    let mounted = true;
-
-    async function loadSidebarFilters() {
-      try {
-        setFiltersLoading(true);
-
-        const items =
-          await getKnowledgeItems();
-
-        if (mounted) {
-          setKnowledgeItems(items);
-        }
-      } catch {
-        if (mounted) {
-          setKnowledgeItems([]);
-        }
-      } finally {
-        if (mounted) {
-          setFiltersLoading(false);
-        }
-      }
-    }
-
-    void loadSidebarFilters();
-
-    return () => {
-      mounted = false;
-    };
-  }, [pathname]);
-
-  const collections = useMemo<
-    SidebarFilter[]
-  >(() => {
-    const counts =
-      knowledgeItems.reduce<
-        Record<string, number>
-      >((result, item) => {
-        const uniqueTags = new Set(
-          item.tags
-            .map((tag) =>
-              tag.trim().toLowerCase(),
-            )
-            .filter(Boolean),
-        );
-
-        uniqueTags.forEach((tag) => {
-          result[tag] =
-            (result[tag] ?? 0) + 1;
-        });
-
-        return result;
-      }, {});
-
-    return Object.entries(counts)
-      .map(([label, count]) => ({
-        id: label,
-        label,
-        count,
-      }))
-      .sort(
-        (first, second) =>
-          second.count - first.count,
-      )
-      .slice(0, 6);
-  }, [knowledgeItems]);
-
-  const sources = useMemo<
-    SidebarFilter[]
-  >(() => {
-    const counts =
-      knowledgeItems.reduce<
-        Record<string, number>
-      >((result, item) => {
-        result[item.platform] =
-          (result[item.platform] ?? 0) +
-          1;
-
-        return result;
-      }, {});
-
-    return Object.entries(counts)
-      .map(([platform, count]) => ({
-        id: platform,
-        label:
-          getPlatformLabel(platform),
-        count,
-      }))
-      .sort(
-        (first, second) =>
-          second.count - first.count,
-      );
-  }, [knowledgeItems]);
-
   function isActive(
     href: string,
     exact = false,
@@ -396,87 +222,7 @@ export function AppSidebar() {
         })}
       </nav>
 
-      <div className="mt-4 min-h-0 flex-1 overflow-y-auto">
-        <div className="px-3 pt-2">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Top topics
-          </p>
-        </div>
-
-        <div className="mt-2 flex flex-col gap-0.5">
-          {filtersLoading ? (
-            <SidebarLoadingRows count={3} />
-          ) : collections.length > 0 ? (
-            collections.map(
-              (collection) => (
-                <Link
-                  key={collection.id}
-                  href={`/app?tag=${encodeURIComponent(
-                    collection.id,
-                  )}`}
-                  title={`Show memories tagged ${collection.label}`}
-                  className="flex items-center gap-3 rounded-lg px-3 py-1.5 text-[13px] text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground"
-                >
-                  <Hash className="h-3.5 w-3.5 shrink-0" />
-
-                  <span className="min-w-0 flex-1 truncate text-left">
-                    {collection.label}
-                  </span>
-
-                  <span className="text-[11px] text-muted-foreground/70">
-                    {collection.count}
-                  </span>
-                </Link>
-              ),
-            )
-          ) : (
-            <p className="px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
-              Your most-used tags will
-              appear here.
-            </p>
-          )}
-        </div>
-
-        <div className="mt-5 px-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Sources
-          </p>
-        </div>
-
-        <div className="mt-2 flex flex-col gap-0.5">
-          {filtersLoading ? (
-            <SidebarLoadingRows count={3} />
-          ) : sources.length > 0 ? (
-            sources.map((source) => (
-              <Link
-                key={source.id}
-                href={`/app?source=${encodeURIComponent(
-                  source.id,
-                )}`}
-                title={`Show ${source.label} memories`}
-                className="flex items-center gap-3 rounded-lg px-3 py-1.5 text-[13px] text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground"
-              >
-                <SourceIcon
-                  platform={source.id}
-                />
-
-                <span className="min-w-0 flex-1 truncate">
-                  {source.label}
-                </span>
-
-                <span className="text-[11px] text-muted-foreground/70">
-                  {source.count}
-                </span>
-              </Link>
-            ))
-          ) : (
-            <p className="px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
-              Your knowledge sources will
-              appear here.
-            </p>
-          )}
-        </div>
-      </div>
+      <div className="flex-1" />
 
       <div className="mt-3 rounded-xl border border-border bg-surface p-3">
         <div className="flex items-center gap-2">
@@ -520,24 +266,5 @@ export function AppSidebar() {
         </div>
       </div>
     </aside>
-  );
-}
-
-function SidebarLoadingRows({
-  count,
-}: {
-  count: number;
-}) {
-  return (
-    <>
-      {Array.from({
-        length: count,
-      }).map((_, index) => (
-        <div
-          key={index}
-          className="mx-3 my-1 h-7 animate-pulse rounded-lg bg-muted"
-        />
-      ))}
-    </>
   );
 }
