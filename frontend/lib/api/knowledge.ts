@@ -1,7 +1,7 @@
 import { backendRequest } from "@/lib/api/backend";
 import type { KnowledgeItem, Platform } from "@/lib/mock-data";
 
-type BackendKnowledgeItem = {
+export type BackendKnowledgeItem = {
   id: string;
   original_url: string;
   platform: string;
@@ -91,7 +91,7 @@ function getRelativeTime(date: string): string {
   return `${days} days ago`;
 }
 
-function normalizeKnowledgeItem(
+export function normalizeKnowledgeItem(
   item: BackendKnowledgeItem,
 ): KnowledgeItem {
   const source = getSourceFromUrl(item.original_url);

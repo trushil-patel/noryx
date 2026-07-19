@@ -13,6 +13,28 @@ class CaptureRequest(BaseModel):
     url: HttpUrl
 
 
+class CollectionCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    description: str | None = Field(default=None, max_length=500)
+
+
+class CollectionUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=80)
+    description: str | None = Field(default=None, max_length=500)
+
+
+class CollectionItemCreate(BaseModel):
+    knowledge_item_id: str
+
+
+class ConnectionCreate(BaseModel):
+    user_id: str
+
+
+class ConnectionUpdate(BaseModel):
+    action: Literal["accept", "decline"]
+
+
 class HomepageData(BaseModel):
     navigation: list[str]
     headings: list[str]

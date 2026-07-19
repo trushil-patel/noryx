@@ -20,12 +20,14 @@ import {
   Briefcase,
   Hash,
   LayoutGrid,
+  Folder,
   LogOut,
   MessageCircle,
   PlusCircle,
   Search,
   Settings,
   Video,
+  Users,
   X,
 } from "lucide-react";
 
@@ -68,6 +70,16 @@ const navigation = [
     href: "/app/capture",
     label: "Capture",
     icon: PlusCircle,
+  },
+  {
+    href: "/app/collections",
+    label: "Collections",
+    icon: Folder,
+  },
+  {
+    href: "/app/network",
+    label: "Connections",
+    icon: Users,
   },
   {
     href: "/app/insights",

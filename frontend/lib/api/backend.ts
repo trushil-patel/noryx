@@ -39,7 +39,7 @@ export async function backendRequest<T>(
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data?.message ?? "Backend request failed.");
+    throw new Error(data?.detail ?? data?.message ?? "Backend request failed.");
   }
 
   return data as T;

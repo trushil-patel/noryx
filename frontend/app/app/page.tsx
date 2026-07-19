@@ -43,6 +43,7 @@ import {
 } from "react-icons/si";
 
 import { Button } from "@/components/ui/button";
+import { CollectionPicker } from "@/components/collections/collection-picker";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import {
   deleteKnowledgeItem,
@@ -832,6 +833,11 @@ function MemoryTile({
               </div>
 
               <div className="flex items-center gap-1">
+                <CollectionPicker
+                  memoryId={item.id}
+                  memoryTitle={item.title}
+                  dark
+                />
                 <button
                   type="button"
                   onClick={onDelete}
@@ -876,6 +882,10 @@ function MemoryTile({
               </div>
 
               <div className="flex items-center gap-1">
+                <CollectionPicker
+                  memoryId={item.id}
+                  memoryTitle={item.title}
+                />
                 <button
                   type="button"
                   onClick={onDelete}

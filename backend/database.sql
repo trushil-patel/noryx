@@ -31,3 +31,164 @@ create policy "Users read own tags" on public.knowledge_tags for select using (e
 
 create index if not exists knowledge_items_user_created_idx on public.knowledge_items (user_id, created_at desc);
 create index if not exists knowledge_items_embedding_idx on public.knowledge_items using hnsw (embedding vector_cosine_ops);
+
+create table if not exists public.collections (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references auth.users(id) on delete cascade,
+  name text not null check (char_length(trim(name)) between 1 and 80),
+  description text check (description is null or char_length(description) <= 500),
+  visibility text not null default 'private' check (visibility in ('private', 'friends')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.collection_items (
+  collection_id uuid not null references public.collections(id) on delete cascade,
+  knowledge_item_id uuid not null references public.knowledge_items(id) on delete cascade,
+  added_by uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (collection_id, knowledge_item_id)
+);
+
+alter table public.collections enable row level security;
+alter table public.collection_items enable row level security;
+
+create policy "Users manage own collections" on public.collections
+for all using (auth.uid() = owner_id) with check (auth.uid() = owner_id);
+
+create policy "Users read items in own collections" on public.collection_items
+for select using (
+  exists (
+    select 1 from public.collections c
+    where c.id = collection_id and c.owner_id = auth.uid()
+  )
+);
+
+create policy "Users add items to own collections" on public.collection_items
+for insert with check (
+  auth.uid() = added_by
+  and exists (
+    select 1 from public.collections c
+    where c.id = collection_id and c.owner_id = auth.uid()
+  )
+  and exists (
+    select 1 from public.knowledge_items k
+    where k.id = knowledge_item_id and k.user_id = auth.uid()
+  )
+);
+
+create policy "Users remove items from own collections" on public.collection_items
+for delete using (
+  exists (
+    select 1 from public.collections c
+    where c.id = collection_id and c.owner_id = auth.uid()
+  )
+);
+
+create index if not exists collections_owner_updated_idx
+on public.collections (owner_id, updated_at desc);
+
+create index if not exists collection_items_knowledge_idx
+on public.collection_items (knowledge_item_id);
+
+create table if not exists public.profiles (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  username text not null unique check (username ~ '^[a-z0-9_]{3,40}$'),
+  display_name text not null check (char_length(trim(display_name)) between 1 and 80),
+  avatar_url text,
+  bio text check (bio is null or char_length(bio) <= 280),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.connections (
+  id uuid primary key default gen_random_uuid(),
+  requester_id uuid not null references public.profiles(user_id) on delete cascade,
+  addressee_id uuid not null references public.profiles(user_id) on delete cascade,
+  pair_key text generated always as (
+    least(requester_id::text, addressee_id::text) || ':' ||
+    greatest(requester_id::text, addressee_id::text)
+  ) stored unique,
+  status text not null default 'pending' check (status in ('pending', 'accepted', 'declined')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (requester_id <> addressee_id)
+);
+
+alter table public.profiles enable row level security;
+alter table public.connections enable row level security;
+
+create policy "Authenticated users discover profiles" on public.profiles
+for select to authenticated using (true);
+
+create policy "Users update own profile" on public.profiles
+for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create policy "Users read own connections" on public.connections
+for select using (auth.uid() = requester_id or auth.uid() = addressee_id);
+
+create policy "Users send connection requests" on public.connections
+for insert with check (auth.uid() = requester_id and status = 'pending');
+
+create policy "Recipients answer connection requests" on public.connections
+for update using (auth.uid() = addressee_id)
+with check (auth.uid() = addressee_id);
+
+create policy "Participants remove connections" on public.connections
+for delete using (auth.uid() = requester_id or auth.uid() = addressee_id);
+
+create index if not exists profiles_username_idx on public.profiles (username);
+create index if not exists connections_requester_idx on public.connections (requester_id, status);
+create index if not exists connections_addressee_idx on public.connections (addressee_id, status);
+
+create or replace function public.create_memora_profile()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  base_username text;
+  profile_name text;
+begin
+  base_username := trim(both '_' from regexp_replace(
+    lower(split_part(coalesce(new.email, 'memora_user'), '@', 1)),
+    '[^a-z0-9_]+', '_', 'g'
+  ));
+  if base_username = '' then base_username := 'memora_user'; end if;
+  profile_name := coalesce(
+    new.raw_user_meta_data ->> 'full_name',
+    new.raw_user_meta_data ->> 'name',
+    split_part(coalesce(new.email, 'Memora user'), '@', 1)
+  );
+  insert into public.profiles (user_id, username, display_name, avatar_url)
+  values (
+    new.id,
+    left(base_username, 28) || '_' || left(replace(new.id::text, '-', ''), 8),
+    left(profile_name, 80),
+    coalesce(new.raw_user_meta_data ->> 'avatar_url', new.raw_user_meta_data ->> 'picture')
+  )
+  on conflict (user_id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists create_memora_profile_after_signup on auth.users;
+create trigger create_memora_profile_after_signup
+after insert on auth.users
+for each row execute function public.create_memora_profile();
+
+insert into public.profiles (user_id, username, display_name, avatar_url)
+select
+  id,
+  left(coalesce(nullif(trim(both '_' from regexp_replace(
+    lower(split_part(coalesce(email, 'memora_user'), '@', 1)),
+    '[^a-z0-9_]+', '_', 'g'
+  )), ''), 'memora_user'), 28) || '_' || left(replace(id::text, '-', ''), 8),
+  left(coalesce(
+    raw_user_meta_data ->> 'full_name',
+    raw_user_meta_data ->> 'name',
+    split_part(coalesce(email, 'Memora user'), '@', 1)
+  ), 80),
+  coalesce(raw_user_meta_data ->> 'avatar_url', raw_user_meta_data ->> 'picture')
+from auth.users
+on conflict (user_id) do nothing;
