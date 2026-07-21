@@ -9,6 +9,56 @@ create table if not exists public.collection_members (
   primary key (collection_id, user_id)
 );
 
+alter table public.collection_members
+add column if not exists connection_id uuid references public.connections(id) on delete cascade;
+
+update public.collection_members cm
+set connection_id = cn.id
+from public.connections cn
+where cm.connection_id is null
+  and cn.status = 'accepted'
+  and (
+    (cn.requester_id = cm.added_by and cn.addressee_id = cm.user_id)
+    or (cn.addressee_id = cm.added_by and cn.requester_id = cm.user_id)
+  );
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.collection_members'::regclass
+      and confrelid = 'public.collections'::regclass
+      and contype = 'f'
+  ) then
+    alter table public.collection_members
+    add constraint collection_members_collection_id_fkey
+    foreign key (collection_id) references public.collections(id) on delete cascade;
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.collection_members'::regclass
+      and confrelid = 'public.profiles'::regclass
+      and contype = 'f'
+  ) then
+    alter table public.collection_members
+    add constraint collection_members_user_id_fkey
+    foreign key (user_id) references public.profiles(user_id) on delete cascade;
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.collection_members'::regclass
+      and confrelid = 'public.connections'::regclass
+      and contype = 'f'
+  ) then
+    alter table public.collection_members
+    add constraint collection_members_connection_id_fkey
+    foreign key (connection_id) references public.connections(id) on delete cascade;
+  end if;
+end
+$$;
+
 alter table public.collection_members enable row level security;
 
 create or replace function public.is_collection_owner(p_collection_id uuid)
@@ -95,5 +145,7 @@ for select using (
 
 create index if not exists collection_members_user_idx
 on public.collection_members (user_id, created_at desc);
+
+notify pgrst, 'reload schema';
 
 commit;

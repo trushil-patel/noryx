@@ -178,15 +178,19 @@ async def answer_request(
 @router.delete("/{connection_id}")
 async def remove_connection(connection_id: UUID, user: CurrentUser) -> dict[str, object]:
     get_participating_connection(connection_id, user.id)
-    memberships = (
-        admin_client()
-        .table("collection_members")
-        .select("collection_id")
-        .eq("connection_id", str(connection_id))
-        .execute()
-        .data
-        or []
-    )
+    try:
+        memberships = (
+            admin_client()
+            .table("collection_members")
+            .select("collection_id")
+            .eq("connection_id", str(connection_id))
+            .execute()
+            .data
+            or []
+        )
+    except Exception as exc:
+        print(f"Collection membership cleanup unavailable: {exc}")
+        memberships = []
     admin_client().table("connections").delete().eq("id", str(connection_id)).execute()
     for membership in memberships:
         collection_id = str(membership["collection_id"])

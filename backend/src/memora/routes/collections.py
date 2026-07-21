@@ -20,9 +20,7 @@ MEMORY_SELECT = (
     "knowledge_tags(id,tag)"
 )
 COLLECTION_SELECT = "id,owner_id,name,description,visibility,created_at,updated_at"
-COLLECTION_LIST_SELECT = (
-    f"{COLLECTION_SELECT},collection_items(count),collection_members(count)"
-)
+COLLECTION_LIST_SELECT = f"{COLLECTION_SELECT},collection_items(count)"
 PROFILE_SELECT = "user_id,username,display_name,avatar_url,bio"
 
 
@@ -83,11 +81,14 @@ def get_accessible_collection(
     return rows[0], "member"
 
 
-def add_collection_counts(row: dict[str, object], access: str) -> dict[str, object]:
+def add_collection_counts(
+    row: dict[str, object],
+    access: str,
+    member_count: int = 0,
+) -> dict[str, object]:
     item_counts = row.pop("collection_items", []) or []
-    member_counts = row.pop("collection_members", []) or []
     row["item_count"] = item_counts[0].get("count", 0) if item_counts else 0
-    row["member_count"] = member_counts[0].get("count", 0) if member_counts else 0
+    row["member_count"] = member_count
     row["access"] = access
     return row
 
@@ -168,24 +169,34 @@ def get_collection_members(collection_id: str) -> list[dict[str, object]]:
     rows = (
         admin_client()
         .table("collection_members")
-        .select(
-            "user_id,created_at,"
-            f"profile:profiles!collection_members_user_id_fkey({PROFILE_SELECT})"
-        )
+        .select("user_id,created_at")
         .eq("collection_id", collection_id)
         .order("created_at")
         .execute()
         .data
         or []
     )
+    user_ids = list(dict.fromkeys(str(row["user_id"]) for row in rows))
+    profiles = []
+    if user_ids:
+        profiles = (
+            admin_client()
+            .table("profiles")
+            .select(PROFILE_SELECT)
+            .in_("user_id", user_ids)
+            .execute()
+            .data
+            or []
+        )
+    profiles_by_id = {str(profile["user_id"]): profile for profile in profiles}
     return [
         {
             "user_id": row["user_id"],
             "created_at": row["created_at"],
-            "profile": row.get("profile"),
+            "profile": profiles_by_id[str(row["user_id"])],
         }
         for row in rows
-        if row.get("profile")
+        if str(row["user_id"]) in profiles_by_id
     ]
 
 
@@ -196,15 +207,20 @@ async def list_collections(user: CurrentUser) -> dict[str, object]:
         .select(COLLECTION_LIST_SELECT)
         .eq("owner_id", user.id).order("updated_at", desc=True).execute().data or []
     )
-    membership_rows = (
-        admin_client()
-        .table("collection_members")
-        .select("collection_id")
-        .eq("user_id", user.id)
-        .execute()
-        .data
-        or []
-    )
+    try:
+        membership_rows = (
+            admin_client()
+            .table("collection_members")
+            .select("collection_id")
+            .eq("user_id", user.id)
+            .execute()
+            .data
+            or []
+        )
+    except Exception as exc:
+        print(f"Collection memberships unavailable; returning owned collections: {exc}")
+        rows = [add_collection_counts(row, "owner") for row in owned]
+        return {"success": True, "collections": rows}
     shared_ids = list(
         dict.fromkeys(str(row["collection_id"]) for row in membership_rows)
     )
@@ -220,9 +236,36 @@ async def list_collections(user: CurrentUser) -> dict[str, object]:
             or []
         )
 
+    collection_ids = list(
+        dict.fromkeys(
+            [str(row["id"]) for row in owned]
+            + [str(row["id"]) for row in shared]
+        )
+    )
+    member_counts: dict[str, int] = {}
+    if collection_ids:
+        member_rows = (
+            admin_client()
+            .table("collection_members")
+            .select("collection_id")
+            .in_("collection_id", collection_ids)
+            .execute()
+            .data
+            or []
+        )
+        for member_row in member_rows:
+            collection_id = str(member_row["collection_id"])
+            member_counts[collection_id] = member_counts.get(collection_id, 0) + 1
+
     rows = [
-        *(add_collection_counts(row, "owner") for row in owned),
-        *(add_collection_counts(row, "member") for row in shared),
+        *(
+            add_collection_counts(row, "owner", member_counts.get(str(row["id"]), 0))
+            for row in owned
+        ),
+        *(
+            add_collection_counts(row, "member", member_counts.get(str(row["id"]), 0))
+            for row in shared
+        ),
     ]
     rows.sort(key=lambda row: str(row.get("updated_at") or ""), reverse=True)
     return {"success": True, "collections": rows}
@@ -255,7 +298,7 @@ async def create_collection(body: CollectionCreate, user: CurrentUser) -> dict[s
     row["item_count"] = 0
     row["member_count"] = len(members)
     row["access"] = "owner"
-    row["members"] = get_collection_members(str(row["id"]))
+    row["members"] = get_collection_members(str(row["id"])) if members else []
     return {"success": True, "collection": row}
 
 
@@ -270,7 +313,13 @@ async def get_collection(collection_id: UUID, user: CurrentUser) -> dict[str, ob
     )
     collection["items"] = [link["knowledge_items"] for link in links if link.get("knowledge_items")]
     collection["item_count"] = len(collection["items"])
-    collection["members"] = get_collection_members(str(collection_id))
+    try:
+        collection["members"] = get_collection_members(str(collection_id))
+    except Exception as exc:
+        if access != "owner":
+            raise
+        print(f"Collection memberships unavailable for {collection_id}: {exc}")
+        collection["members"] = []
     collection["member_count"] = len(collection["members"])
     collection["access"] = access
     return {"success": True, "collection": collection}

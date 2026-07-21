@@ -229,6 +229,8 @@ create index if not exists connections_addressee_idx on public.connections (addr
 create index if not exists collection_members_user_idx
 on public.collection_members (user_id, created_at desc);
 
+notify pgrst, 'reload schema';
+
 create or replace function public.create_memora_profile()
 returns trigger
 language plpgsql
