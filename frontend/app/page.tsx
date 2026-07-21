@@ -95,7 +95,7 @@ const faqs = [
   },
   {
     q: "Is my data private?",
-    a: "Yes. Your library is end-to-end encrypted at rest. We never sell your data or train models on it.",
+    a: "Your library is tied to your account and protected with access controls. We do not sell your personal information; saved-link content is processed by our AI provider to create the features you request.",
   },
   {
     q: "Do I need to organize anything?",
@@ -516,11 +516,11 @@ export default function Landing() {
             </p>
           </div>
           <nav className="flex flex-wrap gap-x-6 gap-y-2 text-[12.5px] text-muted-foreground">
-            <a href="#" className="hover:text-foreground">Privacy</a>
-            <a href="#" className="hover:text-foreground">Terms</a>
+            <Link href="/privacy" className="hover:text-foreground">Privacy</Link>
+            <Link href="/terms" className="hover:text-foreground">Terms</Link>
             <a href="#" className="hover:text-foreground">Changelog</a>
             <a href="#" className="hover:text-foreground">Twitter</a>
-            <a href="#" className="hover:text-foreground">Contact</a>
+            <a href="mailto:trushilpatel27123@gmail.com" className="hover:text-foreground">Contact</a>
           </nav>
         </div>
       </footer>

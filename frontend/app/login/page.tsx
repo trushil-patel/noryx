@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   Loader2,
@@ -168,19 +169,19 @@ export default function LoginPage() {
 
         <p className="mt-6 text-center text-[11.5px] leading-relaxed text-muted-foreground">
           By continuing, you agree to noryX&apos;s{" "}
-          <a
-            href="#"
+          <Link
+            href="/terms"
             className="underline underline-offset-2 hover:text-foreground"
           >
             Terms
-          </a>{" "}
+          </Link>{" "}
           and{" "}
-          <a
-            href="#"
+          <Link
+            href="/privacy"
             className="underline underline-offset-2 hover:text-foreground"
           >
             Privacy Policy
-          </a>
+          </Link>
           .
         </p>
       </div>
