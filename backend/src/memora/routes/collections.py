@@ -4,7 +4,12 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, status
 
 from memora.auth import CurrentUser
-from memora.models import CollectionCreate, CollectionItemCreate, CollectionUpdate
+from memora.models import (
+    CollectionCreate,
+    CollectionItemCreate,
+    CollectionMemberCreate,
+    CollectionUpdate,
+)
 from memora.supabase import admin_client
 
 router = APIRouter(prefix="/api/collections", tags=["collections"])
@@ -14,6 +19,11 @@ MEMORY_SELECT = (
     "why_it_matters,thumbnail_url,status,source_type,created_at,updated_at,"
     "knowledge_tags(id,tag)"
 )
+COLLECTION_SELECT = "id,owner_id,name,description,visibility,created_at,updated_at"
+COLLECTION_LIST_SELECT = (
+    f"{COLLECTION_SELECT},collection_items(count),collection_members(count)"
+)
+PROFILE_SELECT = "user_id,username,display_name,avatar_url,bio"
 
 
 def clean_name(value: str) -> str:
@@ -26,7 +36,7 @@ def clean_name(value: str) -> str:
 def get_owned_collection(collection_id: UUID, user_id: str) -> dict[str, object]:
     rows = (
         admin_client().table("collections")
-        .select("id,owner_id,name,description,visibility,created_at,updated_at")
+        .select(COLLECTION_SELECT)
         .eq("id", str(collection_id)).eq("owner_id", user_id).limit(1).execute().data or []
     )
     if not rows:
@@ -34,39 +44,224 @@ def get_owned_collection(collection_id: UUID, user_id: str) -> dict[str, object]
     return rows[0]
 
 
+def get_accessible_collection(
+    collection_id: UUID,
+    user_id: str,
+) -> tuple[dict[str, object], str]:
+    try:
+        return get_owned_collection(collection_id, user_id), "owner"
+    except HTTPException as exc:
+        if exc.status_code != status.HTTP_404_NOT_FOUND:
+            raise
+
+    membership = (
+        admin_client()
+        .table("collection_members")
+        .select("collection_id")
+        .eq("collection_id", str(collection_id))
+        .eq("user_id", user_id)
+        .limit(1)
+        .execute()
+        .data
+        or []
+    )
+    if not membership:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Collection not found.")
+
+    rows = (
+        admin_client()
+        .table("collections")
+        .select(COLLECTION_SELECT)
+        .eq("id", str(collection_id))
+        .limit(1)
+        .execute()
+        .data
+        or []
+    )
+    if not rows:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Collection not found.")
+    return rows[0], "member"
+
+
+def add_collection_counts(row: dict[str, object], access: str) -> dict[str, object]:
+    item_counts = row.pop("collection_items", []) or []
+    member_counts = row.pop("collection_members", []) or []
+    row["item_count"] = item_counts[0].get("count", 0) if item_counts else 0
+    row["member_count"] = member_counts[0].get("count", 0) if member_counts else 0
+    row["access"] = access
+    return row
+
+
+def accepted_collection_members(
+    connection_ids: list[str],
+    owner_id: str,
+) -> list[tuple[str, str]]:
+    normalized_ids: list[str] = []
+    for value in connection_ids:
+        try:
+            connection_id = str(UUID(value))
+        except ValueError as exc:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "Invalid connection id.",
+            ) from exc
+        if connection_id not in normalized_ids:
+            normalized_ids.append(connection_id)
+
+    if not normalized_ids:
+        return []
+
+    rows = (
+        admin_client()
+        .table("connections")
+        .select("id,requester_id,addressee_id,status")
+        .in_("id", normalized_ids)
+        .eq("status", "accepted")
+        .execute()
+        .data
+        or []
+    )
+    by_id = {str(row["id"]): row for row in rows}
+    members: list[tuple[str, str]] = []
+
+    for connection_id in normalized_ids:
+        connection = by_id.get(connection_id)
+        if not connection or owner_id not in {
+            str(connection["requester_id"]),
+            str(connection["addressee_id"]),
+        }:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "Only accepted connections can be added to a collection.",
+            )
+        member_id = (
+            str(connection["addressee_id"])
+            if str(connection["requester_id"]) == owner_id
+            else str(connection["requester_id"])
+        )
+        members.append((connection_id, member_id))
+
+    return list(dict.fromkeys(members))
+
+
+def insert_collection_members(
+    collection_id: str,
+    members: list[tuple[str, str]],
+    owner_id: str,
+) -> None:
+    if not members:
+        return
+    admin_client().table("collection_members").insert(
+        [
+            {
+                "collection_id": collection_id,
+                "connection_id": connection_id,
+                "user_id": member_id,
+                "added_by": owner_id,
+            }
+            for connection_id, member_id in members
+        ]
+    ).execute()
+
+
+def get_collection_members(collection_id: str) -> list[dict[str, object]]:
+    rows = (
+        admin_client()
+        .table("collection_members")
+        .select(
+            "user_id,created_at,"
+            f"profile:profiles!collection_members_user_id_fkey({PROFILE_SELECT})"
+        )
+        .eq("collection_id", collection_id)
+        .order("created_at")
+        .execute()
+        .data
+        or []
+    )
+    return [
+        {
+            "user_id": row["user_id"],
+            "created_at": row["created_at"],
+            "profile": row.get("profile"),
+        }
+        for row in rows
+        if row.get("profile")
+    ]
+
+
 @router.get("")
 async def list_collections(user: CurrentUser) -> dict[str, object]:
-    rows = (
+    owned = (
         admin_client().table("collections")
-        .select(
-            "id,owner_id,name,description,visibility,created_at,updated_at,"
-            "collection_items(count)"
-        )
+        .select(COLLECTION_LIST_SELECT)
         .eq("owner_id", user.id).order("updated_at", desc=True).execute().data or []
     )
-    for row in rows:
-        counts = row.pop("collection_items", []) or []
-        row["item_count"] = counts[0].get("count", 0) if counts else 0
+    membership_rows = (
+        admin_client()
+        .table("collection_members")
+        .select("collection_id")
+        .eq("user_id", user.id)
+        .execute()
+        .data
+        or []
+    )
+    shared_ids = list(
+        dict.fromkeys(str(row["collection_id"]) for row in membership_rows)
+    )
+    shared = []
+    if shared_ids:
+        shared = (
+            admin_client()
+            .table("collections")
+            .select(COLLECTION_LIST_SELECT)
+            .in_("id", shared_ids)
+            .execute()
+            .data
+            or []
+        )
+
+    rows = [
+        *(add_collection_counts(row, "owner") for row in owned),
+        *(add_collection_counts(row, "member") for row in shared),
+    ]
+    rows.sort(key=lambda row: str(row.get("updated_at") or ""), reverse=True)
     return {"success": True, "collections": rows}
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_collection(body: CollectionCreate, user: CurrentUser) -> dict[str, object]:
+    members = accepted_collection_members(body.connection_ids, user.id)
     row = (
         admin_client().table("collections").insert({
             "owner_id": user.id,
             "name": clean_name(body.name),
             "description": body.description.strip() if body.description else None,
+            "visibility": "friends" if members else "private",
             "updated_at": datetime.now(UTC).isoformat(),
         }).execute().data[0]
     )
+    try:
+        insert_collection_members(str(row["id"]), members, user.id)
+    except Exception:
+        (
+            admin_client()
+            .table("collections")
+            .delete()
+            .eq("id", str(row["id"]))
+            .eq("owner_id", user.id)
+            .execute()
+        )
+        raise
     row["item_count"] = 0
+    row["member_count"] = len(members)
+    row["access"] = "owner"
+    row["members"] = get_collection_members(str(row["id"]))
     return {"success": True, "collection": row}
 
 
 @router.get("/{collection_id}")
 async def get_collection(collection_id: UUID, user: CurrentUser) -> dict[str, object]:
-    collection = get_owned_collection(collection_id, user.id)
+    collection, access = get_accessible_collection(collection_id, user.id)
     links = (
         admin_client().table("collection_items")
         .select(f"created_at,knowledge_items({MEMORY_SELECT})")
@@ -75,6 +270,9 @@ async def get_collection(collection_id: UUID, user: CurrentUser) -> dict[str, ob
     )
     collection["items"] = [link["knowledge_items"] for link in links if link.get("knowledge_items")]
     collection["item_count"] = len(collection["items"])
+    collection["members"] = get_collection_members(str(collection_id))
+    collection["member_count"] = len(collection["members"])
+    collection["access"] = access
     return {"success": True, "collection": collection}
 
 
@@ -108,6 +306,84 @@ async def delete_collection(collection_id: UUID, user: CurrentUser) -> dict[str,
         .execute()
     )
     return {"success": True, "deleted_id": str(collection_id)}
+
+
+@router.post("/{collection_id}/members", status_code=status.HTTP_201_CREATED)
+async def add_collection_member(
+    collection_id: UUID,
+    body: CollectionMemberCreate,
+    user: CurrentUser,
+) -> dict[str, object]:
+    get_owned_collection(collection_id, user.id)
+    connection_id, member_id = accepted_collection_members(
+        [body.connection_id],
+        user.id,
+    )[0]
+    existing = (
+        admin_client()
+        .table("collection_members")
+        .select("user_id")
+        .eq("collection_id", str(collection_id))
+        .eq("user_id", member_id)
+        .limit(1)
+        .execute()
+        .data
+        or []
+    )
+    if not existing:
+        insert_collection_members(
+            str(collection_id),
+            [(connection_id, member_id)],
+            user.id,
+        )
+        (
+            admin_client()
+            .table("collections")
+            .update({
+                "visibility": "friends",
+                "updated_at": datetime.now(UTC).isoformat(),
+            })
+            .eq("id", str(collection_id))
+            .eq("owner_id", user.id)
+            .execute()
+        )
+
+    members = get_collection_members(str(collection_id))
+    member = next(
+        (value for value in members if str(value["user_id"]) == member_id),
+        None,
+    )
+    return {"success": True, "duplicate": bool(existing), "member": member}
+
+
+@router.delete("/{collection_id}/members/{member_id}")
+async def remove_collection_member(
+    collection_id: UUID,
+    member_id: UUID,
+    user: CurrentUser,
+) -> dict[str, object]:
+    get_owned_collection(collection_id, user.id)
+    (
+        admin_client()
+        .table("collection_members")
+        .delete()
+        .eq("collection_id", str(collection_id))
+        .eq("user_id", str(member_id))
+        .execute()
+    )
+    remaining_members = get_collection_members(str(collection_id))
+    (
+        admin_client()
+        .table("collections")
+        .update({
+            "visibility": "friends" if remaining_members else "private",
+            "updated_at": datetime.now(UTC).isoformat(),
+        })
+        .eq("id", str(collection_id))
+        .eq("owner_id", user.id)
+        .execute()
+    )
+    return {"success": True, "removed_id": str(member_id)}
 
 
 @router.post("/{collection_id}/items", status_code=status.HTTP_201_CREATED)

@@ -16,6 +16,7 @@ class CaptureRequest(BaseModel):
 class CollectionCreate(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     description: str | None = Field(default=None, max_length=500)
+    connection_ids: list[str] = Field(default_factory=list, max_length=100)
 
 
 class CollectionUpdate(BaseModel):
@@ -25,6 +26,10 @@ class CollectionUpdate(BaseModel):
 
 class CollectionItemCreate(BaseModel):
     knowledge_item_id: str
+
+
+class CollectionMemberCreate(BaseModel):
+    connection_id: str
 
 
 class ConnectionCreate(BaseModel):

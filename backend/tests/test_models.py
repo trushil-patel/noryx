@@ -22,3 +22,12 @@ def test_collection_name_is_required() -> None:
 def test_collection_description_is_optional() -> None:
     collection = CollectionCreate(name="Product research")
     assert collection.description is None
+    assert collection.connection_ids == []
+
+
+def test_collection_accepts_connections() -> None:
+    collection = CollectionCreate(
+        name="Team research",
+        connection_ids=["11111111-1111-1111-1111-111111111111"],
+    )
+    assert collection.connection_ids == ["11111111-1111-1111-1111-111111111111"]

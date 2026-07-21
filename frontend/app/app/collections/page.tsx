@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Folder, Loader2, Plus, Trash2 } from "lucide-react";
+import { Check, Folder, Loader2, Plus, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -12,6 +12,20 @@ import {
   getCollections,
   type Collection,
 } from "@/lib/api/collections";
+import {
+  getConnections,
+  type Connection,
+  type PublicProfile,
+} from "@/lib/api/connections";
+
+function connectionProfile(
+  connection: Connection,
+  currentUserId: string,
+): PublicProfile {
+  return connection.requesterId === currentUserId
+    ? connection.addressee
+    : connection.requester;
+}
 
 export default function CollectionsPage() {
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -20,6 +34,9 @@ export default function CollectionsPage() {
   const [description, setDescription] = useState("");
   const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [friends, setFriends] = useState<Connection[]>([]);
+  const [currentUserId, setCurrentUserId] = useState("");
+  const [selectedConnectionIds, setSelectedConnectionIds] = useState<string[]>([]);
 
   useEffect(() => {
     getCollections()
@@ -28,21 +45,45 @@ export default function CollectionsPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    getConnections()
+      .then((data) => {
+        setFriends(data.friends);
+        setCurrentUserId(data.currentUserId);
+      })
+      .catch(() => {
+        // Collection creation still works when connections are unavailable.
+      });
+  }, []);
+
   async function handleCreate(event: React.FormEvent) {
     event.preventDefault();
     if (!name.trim() || creating) return;
     try {
       setCreating(true);
-      const collection = await createCollection(name, description);
+      const collection = await createCollection(
+        name,
+        description,
+        selectedConnectionIds,
+      );
       setCollections((current) => [collection, ...current]);
       setName("");
       setDescription("");
+      setSelectedConnectionIds([]);
       toast.success("Collection created");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to create collection.");
     } finally {
       setCreating(false);
     }
+  }
+
+  function toggleConnection(connectionId: string) {
+    setSelectedConnectionIds((current) =>
+      current.includes(connectionId)
+        ? current.filter((id) => id !== connectionId)
+        : [...current, connectionId],
+    );
   }
 
   async function handleDelete(collection: Collection) {
@@ -82,6 +123,38 @@ export default function CollectionsPage() {
           {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
           Create
         </button>
+        {friends.length > 0 ? (
+          <fieldset className="sm:col-span-3">
+            <legend className="mb-2 text-[11px] font-medium text-muted-foreground">
+              Add connections (optional)
+            </legend>
+            <div className="flex flex-wrap gap-2">
+              {friends.map((connection) => {
+                const profile = connectionProfile(connection, currentUserId);
+                const selected = selectedConnectionIds.includes(connection.id);
+                return (
+                  <button
+                    key={connection.id}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => toggleConnection(connection.id)}
+                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[12px] transition ${
+                      selected
+                        ? "border-accent bg-accent-soft text-accent"
+                        : "border-border bg-background text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <span className="grid h-6 w-6 place-items-center rounded-full bg-muted text-[9px] font-semibold">
+                      {profile.displayName.slice(0, 1).toUpperCase()}
+                    </span>
+                    {profile.displayName}
+                    {selected ? <Check className="h-3.5 w-3.5" /> : null}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+        ) : null}
       </form>
 
       {loading ? (
@@ -100,11 +173,21 @@ export default function CollectionsPage() {
                 <span className="grid h-11 w-11 place-items-center rounded-2xl bg-accent-soft text-accent"><Folder className="h-5 w-5" /></span>
                 <h2 className="mt-5 truncate text-lg font-semibold tracking-tight">{collection.name}</h2>
                 <p className="mt-1 line-clamp-2 min-h-10 text-[12px] leading-relaxed text-muted-foreground">{collection.description || "A private collection of your saved memories."}</p>
-                <p className="mt-5 text-[11px] text-muted-foreground">{collection.itemCount} {collection.itemCount === 1 ? "memory" : "memories"}</p>
+                <div className="mt-5 flex items-center gap-3 text-[11px] text-muted-foreground">
+                  <span>{collection.itemCount} {collection.itemCount === 1 ? "memory" : "memories"}</span>
+                  <span className="inline-flex items-center gap-1">
+                    <Users className="h-3 w-3" /> {collection.memberCount}
+                  </span>
+                  {collection.access === "member" ? (
+                    <span className="rounded-full bg-accent-soft px-2 py-0.5 text-accent">Shared with you</span>
+                  ) : null}
+                </div>
               </Link>
-              <button type="button" onClick={() => void handleDelete(collection)} disabled={deletingId === collection.id} aria-label={`Delete ${collection.name}`} className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-full text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100">
-                {deletingId === collection.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-              </button>
+              {collection.access === "owner" ? (
+                <button type="button" onClick={() => void handleDelete(collection)} disabled={deletingId === collection.id} aria-label={`Delete ${collection.name}`} className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-full text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100">
+                  {deletingId === collection.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                </button>
+              ) : null}
             </motion.article>
           ))}
         </div>

@@ -178,5 +178,36 @@ async def answer_request(
 @router.delete("/{connection_id}")
 async def remove_connection(connection_id: UUID, user: CurrentUser) -> dict[str, object]:
     get_participating_connection(connection_id, user.id)
+    memberships = (
+        admin_client()
+        .table("collection_members")
+        .select("collection_id")
+        .eq("connection_id", str(connection_id))
+        .execute()
+        .data
+        or []
+    )
     admin_client().table("connections").delete().eq("id", str(connection_id)).execute()
+    for membership in memberships:
+        collection_id = str(membership["collection_id"])
+        remaining = (
+            admin_client()
+            .table("collection_members")
+            .select("user_id")
+            .eq("collection_id", collection_id)
+            .limit(1)
+            .execute()
+            .data
+            or []
+        )
+        (
+            admin_client()
+            .table("collections")
+            .update({
+                "visibility": "friends" if remaining else "private",
+                "updated_at": datetime.now(UTC).isoformat(),
+            })
+            .eq("id", collection_id)
+            .execute()
+        )
     return {"success": True, "deleted_id": str(connection_id)}
