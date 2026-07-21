@@ -1119,7 +1119,7 @@ function EmptyMemoryCanvas() {
 
         <p className="mx-auto mt-3 max-w-sm text-[13px] leading-relaxed text-background/65">
           Save anything that sparks your curiosity.
-          Memora will understand it and bring it back when
+          noryX will understand it and bring it back when
           you need it.
         </p>
 

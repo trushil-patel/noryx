@@ -75,7 +75,7 @@ const steps = [
     icon: Sparkles,
   },
   {
-    label: "Saving to Memora",
+    label: "Saving to noryX",
     detail: "Storing your new memory securely",
     icon: Database,
   },
@@ -130,7 +130,7 @@ function ProcessingContent() {
         ) {
           throw new Error(
             response.warning ??
-              "Memora could not process this link.",
+              "noryX could not process this link.",
           );
         }
 
@@ -237,7 +237,7 @@ function ProcessingContent() {
 
               <p className="mx-auto mt-2 max-w-lg text-[13.5px] text-muted-foreground">
                 {status === "complete"
-                  ? "Memora understood, organized and indexed this knowledge."
+                  ? "noryX understood, organized and indexed this knowledge."
                   : status === "failed"
                     ? error
                     : steps[currentStep].detail}
@@ -261,7 +261,7 @@ function ProcessingContent() {
                 ? "Complete"
                 : status === "failed"
                   ? "Stopped"
-                  : "Memora AI is working"}
+                  : "noryX AI is working"}
             </span>
 
             <span className="tabular-nums">

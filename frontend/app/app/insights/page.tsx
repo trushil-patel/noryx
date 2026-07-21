@@ -127,7 +127,7 @@ export default function InsightsPage() {
 
         <p className="mt-1 text-[13.5px] text-muted-foreground">
           The real shape of your curiosity, generated from
-          your Memora library.
+          your noryX library.
         </p>
       </motion.div>
 

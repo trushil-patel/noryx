@@ -121,7 +121,7 @@ export function CommandPalette({
             </div>
 
             <div className="flex items-center justify-between border-t border-border bg-muted/40 px-4 py-2 text-[11px] text-muted-foreground">
-              <span>Powered by Memora AI</span>
+              <span>Powered by noryX AI</span>
               <span className="flex items-center gap-3">
                 <span className="flex items-center gap-1">
                   <kbd className="rounded border border-border bg-surface px-1 font-mono">↵</kbd> open

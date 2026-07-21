@@ -97,7 +97,7 @@ export const knowledgeItems: KnowledgeItem[] = [
       "Your knowledge base should answer questions, not just store them.",
     ],
     whyItMatters:
-      "This is the thesis behind Memora — and a clean explanation of why the note-taking category is being rewritten.",
+      "This is the thesis behind noryX — and a clean explanation of why the note-taking category is being rewritten.",
     tags: ["ai", "knowledge", "productivity", "tools"],
     thumbnailHue: 145,
   },

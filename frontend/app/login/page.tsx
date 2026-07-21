@@ -124,7 +124,7 @@ export default function LoginPage() {
 
             <div className="mt-5 text-center">
               <h1 className="text-2xl font-semibold tracking-[-0.03em]">
-                Welcome to Memora
+                Welcome to noryX
               </h1>
 
               <p className="mx-auto mt-2 max-w-xs text-[13.5px] leading-relaxed text-muted-foreground">
@@ -167,7 +167,7 @@ export default function LoginPage() {
         </motion.div>
 
         <p className="mt-6 text-center text-[11.5px] leading-relaxed text-muted-foreground">
-          By continuing, you agree to Memora&apos;s{" "}
+          By continuing, you agree to noryX&apos;s{" "}
           <a
             href="#"
             className="underline underline-offset-2 hover:text-foreground"

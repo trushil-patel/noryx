@@ -54,7 +54,7 @@ const features = [
   {
     icon: Bookmark,
     title: "Everything, in one place.",
-    desc: "YouTube. X. LinkedIn. Reddit. Blogs. Memora unifies every source into a single, searchable brain.",
+    desc: "YouTube. X. LinkedIn. Reddit. Blogs. noryX unifies every source into a single, searchable brain.",
   },
   {
     icon: Command,
@@ -66,13 +66,13 @@ const features = [
 const steps = [
   { n: "01", title: "Paste any link", desc: "From YouTube, X, LinkedIn, Reddit, or the open web." },
   { n: "02", title: "AI reads it for you", desc: "Summary, takeaways, tags — in under 8 seconds." },
-  { n: "03", title: "Search it later", desc: "Just ask. Memora finds it, even months later." },
+  { n: "03", title: "Search it later", desc: "Just ask. noryX finds it, even months later." },
 ];
 
 const testimonials = [
   {
     quote:
-      "I used to bookmark hundreds of things and never revisit them. Memora is the first tool that actually made my saves useful.",
+      "I used to bookmark hundreds of things and never revisit them. noryX is the first tool that actually made my saves useful.",
     name: "Anna Petrov",
     role: "Product Lead, Linear",
   },
@@ -82,7 +82,7 @@ const testimonials = [
     role: "Founder, Studio Yao",
   },
   {
-    quote: "Memora feels like it was designed by Apple and staffed by OpenAI.",
+    quote: "noryX feels like it was designed by Apple and staffed by OpenAI.",
     name: "Priya Ramanathan",
     role: "Investor, Neo",
   },
@@ -90,7 +90,7 @@ const testimonials = [
 
 const faqs = [
   {
-    q: "Which sites work with Memora?",
+    q: "Which sites work with noryX?",
     a: "YouTube, X, LinkedIn, Reddit, Instagram, plus any blog or article on the open web. Native apps are on the way.",
   },
   {
@@ -99,14 +99,14 @@ const faqs = [
   },
   {
     q: "Do I need to organize anything?",
-    a: "No. Memora auto-tags, auto-summarizes, and lets you search naturally. Folders are optional.",
+    a: "No. noryX auto-tags, auto-summarizes, and lets you search naturally. Folders are optional.",
   },
   {
     q: "How is this different from a bookmark manager?",
-    a: "Bookmarks store links. Memora understands them — so you can actually find and reuse what you save.",
+    a: "Bookmarks store links. noryX understands them — so you can actually find and reuse what you save.",
   },
   {
-    q: "Can I use Memora with a team?",
+    q: "Can I use noryX with a team?",
     a: "Team workspaces are on the roadmap. Join the waitlist to get early access.",
   },
 ];
@@ -149,7 +149,7 @@ export default function Landing() {
             className="mx-auto inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-[11.5px] font-medium text-muted-foreground shadow-elegant"
           >
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            New — Memora AI 2.0 is here
+            New — noryX AI 2.0 is here
           </motion.div>
           <motion.h1
             initial={{ opacity: 0, y: 12 }}
@@ -183,8 +183,8 @@ export default function Landing() {
             transition={{ delay: 0.15, duration: 0.5 }}
             className="mx-auto mt-6 max-w-2xl text-[15.5px] leading-relaxed text-muted-foreground"
           >
-            Memora is your AI-powered personal knowledge OS. Save links from anywhere — YouTube, X,
-            LinkedIn, Reddit, blogs — and Memora summarizes, tags and remembers everything for you.
+            noryX is your AI-powered personal knowledge OS. Save links from anywhere — YouTube, X,
+            LinkedIn, Reddit, blogs — and noryX summarizes, tags and remembers everything for you.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -299,7 +299,7 @@ export default function Landing() {
             Built for the way you actually learn.
           </h2>
           <p className="mt-3 text-[14.5px] text-muted-foreground">
-            Memora replaces bookmarks, read-it-later apps and notes — with something smarter.
+            noryX replaces bookmarks, read-it-later apps and notes — with something smarter.
           </p>
         </div>
         <div className="mt-14 grid gap-5 md:grid-cols-2">
@@ -500,7 +500,7 @@ export default function Landing() {
               href="/onboarding"
               className="mt-7 inline-flex items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-[13.5px] font-medium text-primary hover:opacity-90"
             >
-              Get Memora free <ArrowRight className="h-3.5 w-3.5" />
+              Get noryX free <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
         </div>
@@ -512,7 +512,7 @@ export default function Landing() {
           <div>
             <Logo />
             <p className="mt-2 text-[12px] text-muted-foreground">
-              © {new Date().getFullYear()} Memora. Made for curious minds.
+              © {new Date().getFullYear()} noryX. Made for curious minds.
             </p>
           </div>
           <nav className="flex flex-wrap gap-x-6 gap-y-2 text-[12.5px] text-muted-foreground">

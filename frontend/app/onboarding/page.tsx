@@ -63,7 +63,7 @@ export default function OnboardingPage() {
                 Let&apos;s get you set up.
               </h1>
               <p className="mt-3 text-[14.5px] text-muted-foreground">
-                A few quick questions so Memora feels like it was made for you.
+                A few quick questions so noryX feels like it was made for you.
               </p>
               <label className="mt-8 block">
                 <div className="mb-1.5 text-[12px] font-medium text-muted-foreground">
@@ -92,7 +92,7 @@ export default function OnboardingPage() {
                 What are you into{name ? `, ${name}` : ""}?
               </h1>
               <p className="mt-3 text-[14.5px] text-muted-foreground">
-                Pick a few interests. Memora will personalize your summaries and search.
+                Pick a few interests. noryX will personalize your summaries and search.
               </p>
               <div className="mt-8 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                 {interests.map((it, i) => {
@@ -149,7 +149,7 @@ export default function OnboardingPage() {
               </motion.div>
               <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">You&apos;re ready.</h1>
               <p className="mt-3 text-[14.5px] text-muted-foreground">
-                We&apos;ve set up your library. Start by capturing your first link — Memora will do
+                We&apos;ve set up your library. Start by capturing your first link — noryX will do
                 the rest.
               </p>
               <div className="mt-8 grid gap-3 sm:grid-cols-3">
@@ -181,7 +181,7 @@ export default function OnboardingPage() {
             disabled={step === 1 && selected.length < 3}
             className="inline-flex items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-[13.5px] font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-40"
           >
-            {step === totalSteps - 1 ? "Enter Memora" : "Continue"}{" "}
+            {step === totalSteps - 1 ? "Enter noryX" : "Continue"}{" "}
             <ArrowRight className="h-3.5 w-3.5" />
           </button>
         </div>

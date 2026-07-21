@@ -125,7 +125,7 @@ export function AppSidebar() {
           metadata.display_name,
         ) ??
         email.split("@")[0] ??
-        "Memora user";
+        "noryX user";
 
       const avatarUrl =
         metadataString(metadata.avatar_url) ??

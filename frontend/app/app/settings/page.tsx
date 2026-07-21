@@ -385,7 +385,7 @@ export default function SettingsPage() {
 
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[15px] font-semibold">
-                        {profile.name || "Memora user"}
+                        {profile.name || "noryX user"}
                       </div>
 
                       <div className="truncate text-[13px] text-muted-foreground">
@@ -492,7 +492,7 @@ export default function SettingsPage() {
           {active === "appearance" && (
             <SectionCard
               title="Appearance"
-              description="Choose how Memora looks on this device."
+              description="Choose how noryX looks on this device."
             >
               <div className="grid gap-3 sm:grid-cols-3">
                 {(["light", "dark", "system"] as const).map(
@@ -569,7 +569,7 @@ export default function SettingsPage() {
           {active === "notifications" && (
             <SectionCard
               title="Notifications"
-              description="Choose when Memora reaches out."
+              description="Choose when noryX reaches out."
             >
               {[
                 {

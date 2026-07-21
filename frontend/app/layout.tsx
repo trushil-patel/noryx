@@ -11,12 +11,12 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Memora — Never lose a great idea again",
+  title: "noryX — Never lose a great idea again",
   description:
-    "Memora is your AI-powered knowledge OS. Save links from YouTube, Reddit, X, LinkedIn or the web — get instant summaries, key takeaways, and search everything in natural language.",
-  authors: [{ name: "Memora" }],
+    "noryX is your AI-powered knowledge OS. Save links from YouTube, Reddit, X, LinkedIn or the web — get instant summaries, key takeaways, and search everything in natural language.",
+  authors: [{ name: "noryX" }],
   openGraph: {
-    title: "Memora — Your AI knowledge OS",
+    title: "noryX — Your AI knowledge OS",
     description:
       "Save links from anywhere. AI summarizes and organizes. Search naturally, remember everything.",
     type: "website",
@@ -25,7 +25,9 @@ export const metadata: Metadata = {
     card: "summary_large_image",
   },
   icons: {
-    icon: "/favicon.ico",
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/noryx-logo.png",
   },
 };
 
@@ -56,7 +58,7 @@ const themeScript = `
     document.documentElement.style.colorScheme =
       shouldUseDark ? "dark" : "light";
   } catch (error) {
-    console.error("Unable to apply Memora theme", error);
+    console.error("Unable to apply noryX theme", error);
   }
 })();
 `;

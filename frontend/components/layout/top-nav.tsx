@@ -26,7 +26,7 @@ export function TopNav({
       </Button>
 
       <div className="text-[13px] font-semibold lg:hidden">
-        Memora
+        noryX
       </div>
 
       <div className="ml-auto flex items-center gap-1.5">

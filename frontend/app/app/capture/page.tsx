@@ -151,7 +151,7 @@ export default function CapturePage() {
       ) {
         throw new Error(
           response.warning ??
-            "Memora could not process this link.",
+            "noryX could not process this link.",
         );
       }
 
@@ -216,7 +216,7 @@ export default function CapturePage() {
               </h1>
 
               <p className="mx-auto mt-2 max-w-xl text-center text-[14px] text-muted-foreground">
-                Paste a link from anywhere. Memora AI will
+                Paste a link from anywhere. noryX AI will
                 read it, summarize it, tag it and transform
                 it into searchable knowledge.
               </p>

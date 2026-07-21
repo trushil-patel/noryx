@@ -109,7 +109,7 @@ export default function NetworkPage() {
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Your people</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">Connections</h1>
         <p className="mt-2 text-[13px] text-muted-foreground">
-          Find friends by their Memora username and connect with them.
+          Find friends by their noryX username and connect with them.
           {currentProfile ? ` Your username is @${currentProfile.username}.` : ""}
         </p>
       </header>
