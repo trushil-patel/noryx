@@ -1,6 +1,7 @@
 from memora.routes.knowledge import (
     build_search_plan,
     rerank_search_results,
+    semantic_candidate_threshold,
     token_match_quality,
 )
 
@@ -61,10 +62,10 @@ def test_vibe_typo_is_corrected_even_without_literal_vibe_tag() -> None:
     assert "ai coding" in phrases
 
 
-def test_semantic_match_can_rescue_short_query() -> None:
+def test_strong_semantic_match_can_rescue_short_query() -> None:
     item = memory(
         "Building software with natural-language prompts",
-        similarity=0.64,
+        similarity=0.75,
     )
     _, phrases, core_terms, expanded_terms = build_search_plan(
         "vibe coder",
@@ -78,6 +79,48 @@ def test_semantic_match_can_rescue_short_query() -> None:
         expanded_terms,
         10,
     ) == [item]
+
+
+def test_weak_semantic_only_match_is_filtered() -> None:
+    item = memory(
+        "Social media strategy for local restaurants",
+        similarity=0.64,
+    )
+    _, phrases, core_terms, expanded_terms = build_search_plan(
+        "vibe coding",
+        [item],
+    )
+
+    assert rerank_search_results(
+        [item],
+        phrases,
+        core_terms,
+        expanded_terms,
+        10,
+    ) == []
+
+
+def test_single_term_search_requires_stronger_semantic_evidence() -> None:
+    weak_item = memory("General software news", similarity=0.74)
+    strong_item = memory("Django web framework patterns", similarity=0.8)
+    _, phrases, core_terms, expanded_terms = build_search_plan(
+        "python",
+        [weak_item, strong_item],
+    )
+
+    assert rerank_search_results(
+        [weak_item, strong_item],
+        phrases,
+        core_terms,
+        expanded_terms,
+        10,
+    ) == [strong_item]
+
+
+def test_vector_candidate_threshold_is_query_aware() -> None:
+    assert semantic_candidate_threshold(["python"]) == 0.68
+    assert semantic_candidate_threshold(["vibe", "coding"]) == 0.64
+    assert semantic_candidate_threshold(["how", "agents", "plan", "tasks"]) == 0.66
 
 
 def test_irrelevant_item_is_filtered_without_semantic_support() -> None:

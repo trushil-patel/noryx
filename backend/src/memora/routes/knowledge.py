@@ -62,6 +62,13 @@ SEARCH_CONCEPTS = (
     ("ts", "typescript"),
 )
 
+# Semantic similarity is useful for concept matches, but scores in the low 0.60s
+# are often only topically adjacent. Require stronger similarity when an item has
+# no lexical evidence from the query, especially for broad one-word searches.
+SEMANTIC_ONLY_MINIMUM = 0.72
+SEMANTIC_ONLY_SINGLE_TERM_MINIMUM = 0.76
+PARTIAL_LEXICAL_MINIMUM = 0.66
+
 
 def search_terms(query: str) -> list[str]:
     terms = [
@@ -424,17 +431,35 @@ def relevance_score(
     if core_terms:
         coverage = matched_terms / len(core_terms)
         score += coverage * 5.0
-        semantic_floor = 0.58 if len(core_terms) <= 3 else 0.64
 
-        if matched_terms == 0 and semantic < semantic_floor:
+        semantic_only_minimum = (
+            SEMANTIC_ONLY_SINGLE_TERM_MINIMUM
+            if len(core_terms) == 1
+            else SEMANTIC_ONLY_MINIMUM
+        )
+
+        if matched_terms == 0 and semantic < semantic_only_minimum:
             return 0.0
 
-        if len(core_terms) >= 2 and coverage < 0.5 and semantic < 0.62:
+        if (
+            len(core_terms) >= 2
+            and coverage < 0.5
+            and semantic < PARTIAL_LEXICAL_MINIMUM
+        ):
             return 0.0
 
     score += semantic * 6.0
 
     return score
+
+
+def semantic_candidate_threshold(core_terms: list[str]) -> float:
+    """Limit noisy vector candidates before the more detailed reranker runs."""
+    if len(core_terms) <= 1:
+        return 0.68
+    if len(core_terms) <= 3:
+        return 0.64
+    return 0.66
 
 
 def merge_search_items(
@@ -602,8 +627,8 @@ async def search(
                     "query_embedding": query_embedding,
                     "match_user_id": user.id,
                     "match_count": min(limit * 5, 100),
-                    "semantic_threshold": (
-                        0.55 if len(core_terms) <= 3 else 0.6
+                    "semantic_threshold": semantic_candidate_threshold(
+                        core_terms
                     ),
                 },
             ).execute()
