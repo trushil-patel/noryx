@@ -134,6 +134,18 @@ function getLocalDateKey(date?: string): string | null {
   return formatLocalDateKey(parsedDate);
 }
 
+function getSavedTimestamp(item: KnowledgeItem): number {
+  if (!item.createdAt) {
+    return Number.NEGATIVE_INFINITY;
+  }
+
+  const timestamp = new Date(item.createdAt).getTime();
+
+  return Number.isNaN(timestamp)
+    ? Number.NEGATIVE_INFINITY
+    : timestamp;
+}
+
 function startOfLocalDay(date: Date): Date {
   return new Date(
     date.getFullYear(),
@@ -410,19 +422,21 @@ function LibraryPageContent() {
 
       switch (activeFilter) {
         case "articles":
-          return result.filter(
+          result = result.filter(
             (item) =>
               item.platform === "article" ||
               item.platform === "blog",
           );
+          break;
 
         case "videos":
-          return result.filter(
+          result = result.filter(
             (item) => item.platform === "youtube",
           );
+          break;
 
         case "social":
-          return result.filter((item) =>
+          result = result.filter((item) =>
             [
               "twitter",
               "linkedin",
@@ -430,15 +444,28 @@ function LibraryPageContent() {
               "reddit",
             ].includes(item.platform),
           );
+          break;
 
         case "tagged":
-          return result.filter(
+          result = result.filter(
             (item) => item.tags.length > 0,
           );
+          break;
 
         default:
-          return result;
+          break;
       }
+
+      return [...result].sort(
+        (first, second) => {
+          const firstTimestamp = getSavedTimestamp(first);
+          const secondTimestamp = getSavedTimestamp(second);
+
+          return firstTimestamp === secondTimestamp
+            ? 0
+            : secondTimestamp - firstTimestamp;
+        },
+      );
     }, [
       activeFilter,
       items,
