@@ -175,6 +175,28 @@ function parseLocalDateKey(dateKey: string): Date {
 
   return new Date(year, month - 1, day);
 }
+
+function getInstagramThumbnailFallback(url: string): string | null {
+  try {
+    const parsedUrl = new URL(url);
+    const hostname = parsedUrl.hostname.toLowerCase();
+    const postPath = parsedUrl.pathname.match(
+      /^\/(?:p|reel|tv)\/[^/]+/,
+    )?.[0];
+
+    if (
+      !hostname.endsWith("instagram.com") ||
+      !postPath
+    ) {
+      return null;
+    }
+
+    return `${parsedUrl.origin}${postPath}/media/?size=l`;
+  } catch {
+    return null;
+  }
+}
+
 function PlatformIcon({ platform }: { platform: KnowledgeItem["platform"] }) {
   const iconClassName = "h-4 w-4";
 
@@ -807,7 +829,23 @@ function MemoryTile({
           : "min-h-[250px]";
 
   const visibleTags = item.tags.slice(0, 4);
-  const hasThumbnail = Boolean(item.thumbnailUrl);
+  const [failedThumbnailUrls, setFailedThumbnailUrls] =
+    useState<string[]>([]);
+  const instagramThumbnailFallback =
+    item.platform === "instagram"
+      ? getInstagramThumbnailFallback(item.url)
+      : null;
+  const thumbnailCandidates = Array.from(
+    new Set(
+      [item.thumbnailUrl, instagramThumbnailFallback].filter(
+        (url): url is string => Boolean(url),
+      ),
+    ),
+  );
+  const thumbnailSource = thumbnailCandidates.find(
+    (url) => !failedThumbnailUrls.includes(url),
+  );
+  const hasThumbnail = Boolean(thumbnailSource);
 
   return (
     <motion.article
@@ -844,10 +882,21 @@ function MemoryTile({
         {hasThumbnail ? (
           <div className="relative aspect-video w-full overflow-hidden bg-muted">
             <img
-              src={item.thumbnailUrl ?? ""}
+              key={thumbnailSource}
+              src={thumbnailSource}
               alt=""
               className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
               loading="lazy"
+              referrerPolicy="no-referrer"
+              onError={() => {
+                if (!thumbnailSource) return;
+
+                setFailedThumbnailUrls((current) =>
+                  current.includes(thumbnailSource)
+                    ? current
+                    : [...current, thumbnailSource],
+                );
+              }}
             />
 
             <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-3">
