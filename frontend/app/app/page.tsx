@@ -756,7 +756,7 @@ function LibraryPageContent() {
           <LayoutGroup>
             <motion.div
               layout
-              className="columns-1 gap-4 sm:columns-2 xl:columns-3 2xl:columns-4"
+              className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
             >
               <AnimatePresence mode="popLayout">
                 {filteredItems.map(
@@ -834,7 +834,7 @@ function MemoryTile({
             }
       }
       className={cn(
-        "group mb-4 break-inside-avoid",
+        "group",
         isDeleting && "pointer-events-none",
       )}
     >
@@ -1059,7 +1059,7 @@ function AnimatedNumber({
 
 function MemoryCanvasLoading() {
   return (
-    <div className="columns-1 gap-4 sm:columns-2 xl:columns-3 2xl:columns-4">
+    <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
       {[
         300,
         220,
@@ -1075,7 +1075,7 @@ function MemoryCanvasLoading() {
           style={{
             height,
           }}
-          className="mb-4 break-inside-avoid animate-pulse rounded-[30px] bg-muted"
+          className="animate-pulse rounded-[30px] bg-muted"
         />
       ))}
     </div>
@@ -1208,7 +1208,7 @@ function LibraryPageLoading() {
           ))}
         </div>
 
-        <div className="mt-12 columns-1 gap-4 sm:columns-2 xl:columns-3 2xl:columns-4">
+        <div className="mt-12 grid grid-cols-1 items-start gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {[
             300,
             220,
@@ -1224,7 +1224,7 @@ function LibraryPageLoading() {
               style={{
                 height,
               }}
-              className="mb-4 break-inside-avoid rounded-[30px] bg-muted"
+              className="rounded-[30px] bg-muted"
             />
           ))}
         </div>
