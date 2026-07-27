@@ -5,9 +5,8 @@ import { cn } from "@/lib/utils";
 
 const Tabs: typeof TabsPrimitive.Root = TabsPrimitive.Root;
 
-interface TabsListProps extends React.ComponentPropsWithoutRef<typeof TabsPrimitive.List> {}
-interface TabsTriggerProps extends React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger> {}
-interface TabsContentProps extends React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content> {}
+type TabsListProps = React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>;
+type TabsContentProps = React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>;
 
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,

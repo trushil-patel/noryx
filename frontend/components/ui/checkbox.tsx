@@ -4,7 +4,7 @@ import { Check } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-interface CheckboxProps extends React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root> {}
+type CheckboxProps = React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>;
 
 type CheckboxRef = React.ElementRef<typeof CheckboxPrimitive.Root>;
 

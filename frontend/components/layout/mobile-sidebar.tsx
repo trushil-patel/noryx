@@ -5,6 +5,7 @@ import {
   useState,
 } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   usePathname,
   useRouter,
@@ -372,9 +373,12 @@ export function MobileSidebar({
               <div className="rounded-2xl border border-border bg-surface p-3">
                 <div className="flex items-center gap-3">
                   {profile?.avatarUrl ? (
-                    <img
+                    <Image
                       src={profile.avatarUrl}
                       alt={profile.name}
+                      width={40}
+                      height={40}
+                      unoptimized
                       referrerPolicy="no-referrer"
                       className="h-10 w-10 shrink-0 rounded-full border border-border object-cover"
                     />

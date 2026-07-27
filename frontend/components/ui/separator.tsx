@@ -6,13 +6,7 @@ import { cn } from "@/lib/utils";
 const Separator = React.forwardRef<
   React.ElementRef<typeof SeparatorPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof SeparatorPrimitive.Root>
->((props, ref) => {
-  const { className, decorative = true, ...rest } = props as React.ComponentPropsWithoutRef<
-    typeof SeparatorPrimitive.Root
-  >;
-
-  // orientation is a union type defined by Radix; provide a default safely
-  const orientation = (rest as any).orientation ?? "horizontal";
+>(({ className, decorative = true, orientation = "horizontal", ...props }, ref) => {
 
   return (
     <SeparatorPrimitive.Root
@@ -24,7 +18,7 @@ const Separator = React.forwardRef<
         orientation === "horizontal" ? "h-[1px] w-full" : "h-full w-[1px]",
         className,
       )}
-      {...(rest as any)}
+      {...props}
     />
   );
 });

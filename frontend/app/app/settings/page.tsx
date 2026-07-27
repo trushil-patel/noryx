@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import {
   AlertTriangle,
@@ -139,9 +140,13 @@ export default function SettingsPage() {
         ? savedTheme
         : "system";
 
-    setTheme(initialTheme);
     applyTheme(initialTheme);
-    setThemeReady(true);
+    const frameId = requestAnimationFrame(() => {
+      setTheme(initialTheme);
+      setThemeReady(true);
+    });
+
+    return () => cancelAnimationFrame(frameId);
   }, []);
 
   useEffect(() => {
@@ -368,9 +373,12 @@ export default function SettingsPage() {
                 <>
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                     {profile.avatarUrl ? (
-                      <img
+                      <Image
                         src={profile.avatarUrl}
                         alt={profile.name || "Profile"}
+                        width={64}
+                        height={64}
+                        unoptimized
                         referrerPolicy="no-referrer"
                         className="h-16 w-16 rounded-full border border-border object-cover"
                       />

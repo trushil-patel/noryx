@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Image from "next/image";
 import { Check, Loader2, Search, UserMinus, UserPlus, Users, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -17,7 +18,16 @@ import {
 
 function ProfileAvatar({ profile }: { profile: PublicProfile }) {
   if (profile.avatarUrl) {
-    return <img src={profile.avatarUrl} alt="" className="h-11 w-11 rounded-full object-cover" />;
+    return (
+      <Image
+        src={profile.avatarUrl}
+        alt=""
+        width={44}
+        height={44}
+        unoptimized
+        className="h-11 w-11 rounded-full object-cover"
+      />
+    );
   }
   return (
     <span className="grid h-11 w-11 place-items-center rounded-full bg-accent-soft text-[12px] font-semibold text-accent">

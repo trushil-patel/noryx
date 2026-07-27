@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import {
   Suspense,
   useEffect,
@@ -16,7 +17,6 @@ import {
 import {
   AlertTriangle,
   BookOpen,
-  Bookmark,
   BookmarkCheck,
   ExternalLink,
   Globe2,
@@ -845,7 +845,6 @@ function MemoryTile({
   const thumbnailSource = thumbnailCandidates.find(
     (url) => !failedThumbnailUrls.includes(url),
   );
-  const hasThumbnail = Boolean(thumbnailSource);
 
   return (
     <motion.article
@@ -879,14 +878,16 @@ function MemoryTile({
       <div
         className={`relative flex ${size} flex-col overflow-hidden rounded-[28px] border border-border/70 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-shadow duration-500 group-hover:shadow-[0_24px_70px_-30px_rgba(0,0,0,0.35)]`}
       >
-        {hasThumbnail ? (
+        {thumbnailSource ? (
           <div className="relative aspect-video w-full overflow-hidden bg-muted">
-            <img
+            <Image
               key={thumbnailSource}
               src={thumbnailSource}
               alt=""
-              className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-              loading="lazy"
+              fill
+              sizes="(min-width: 1536px) 25vw, (min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
+              className="object-cover transition duration-700 group-hover:scale-105"
+              unoptimized
               referrerPolicy="no-referrer"
               onError={() => {
                 if (!thumbnailSource) return;
@@ -1056,8 +1057,11 @@ function AnimatedNumber({
 
   useEffect(() => {
     if (value === 0) {
-      setDisplayValue(0);
-      return;
+      const frameId = requestAnimationFrame(() => {
+        setDisplayValue(0);
+      });
+
+      return () => cancelAnimationFrame(frameId);
     }
 
     const reducedMotion = window.matchMedia(
@@ -1065,8 +1069,11 @@ function AnimatedNumber({
     ).matches;
 
     if (reducedMotion) {
-      setDisplayValue(value);
-      return;
+      const frameId = requestAnimationFrame(() => {
+        setDisplayValue(value);
+      });
+
+      return () => cancelAnimationFrame(frameId);
     }
 
     let frameId = 0;

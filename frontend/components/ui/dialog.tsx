@@ -6,13 +6,6 @@ import { X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-interface DialogOverlayProps extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay> {}
-interface DialogContentProps extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {}
-interface DialogTitleProps extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title> {}
-interface DialogDescriptionProps extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description> {}
-interface DialogHeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
-interface DialogFooterProps extends React.HTMLAttributes<HTMLDivElement> {}
-
 const Dialog = DialogPrimitive.Root;
 
 const DialogTrigger = DialogPrimitive.Trigger;

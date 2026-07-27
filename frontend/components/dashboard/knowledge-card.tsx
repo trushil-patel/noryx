@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import {
   Bookmark,
@@ -52,11 +53,13 @@ export function KnowledgeCard({
         }
       >
         {hasThumbnail ? (
-          <img
+          <Image
             src={item.thumbnailUrl ?? ""}
             alt=""
-            loading="lazy"
-            className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+            fill
+            sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
+            unoptimized
+            className="object-cover transition duration-700 group-hover:scale-105"
           />
         ) : (
           <div className="absolute inset-0 grid-pattern opacity-40" />

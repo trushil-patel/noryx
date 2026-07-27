@@ -5,6 +5,7 @@ import {
   useState,
 } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -227,9 +228,12 @@ export function AppSidebar() {
       <div className="mt-3 rounded-xl border border-border bg-surface p-3">
         <div className="flex items-center gap-2">
           {profile?.avatarUrl ? (
-            <img
+            <Image
               src={profile.avatarUrl}
               alt={profile.name}
+              width={32}
+              height={32}
+              unoptimized
               referrerPolicy="no-referrer"
               className="h-8 w-8 shrink-0 rounded-full border border-border object-cover"
             />
