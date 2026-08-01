@@ -791,8 +791,56 @@ async def capture(
 ) -> dict[str, object]:
     url = canonical_url(str(body.url))
     client = admin_client()
+    collection_id = str(body.collection_id) if body.collection_id else None
 
     try:
+        if collection_id:
+            collections = (
+                client.table("collections")
+                .select("id")
+                .eq("id", collection_id)
+                .eq("owner_id", user.id)
+                .limit(1)
+                .execute()
+                .data
+                or []
+            )
+            if not collections:
+                raise HTTPException(
+                    status.HTTP_404_NOT_FOUND,
+                    "Collection not found.",
+                )
+
+        def add_to_selected_collection(memory_id: str) -> bool:
+            if not collection_id:
+                return False
+
+            existing_links = (
+                client.table("collection_items")
+                .select("collection_id")
+                .eq("collection_id", collection_id)
+                .eq("knowledge_item_id", memory_id)
+                .limit(1)
+                .execute()
+                .data
+                or []
+            )
+            if not existing_links:
+                client.table("collection_items").insert({
+                    "collection_id": collection_id,
+                    "knowledge_item_id": memory_id,
+                    "added_by": user.id,
+                }).execute()
+
+            (
+                client.table("collections")
+                .update({"updated_at": datetime.now(UTC).isoformat()})
+                .eq("id", collection_id)
+                .eq("owner_id", user.id)
+                .execute()
+            )
+            return not bool(existing_links)
+
         existing_items = (
             client.table("knowledge_items")
             .select(SELECT)
@@ -807,11 +855,27 @@ async def capture(
         existing_item = find_existing_memory(existing_items, url)
 
         if existing_item:
+            try:
+                added_to_collection = add_to_selected_collection(
+                    str(existing_item["id"])
+                )
+            except Exception as collection_exc:
+                print(
+                    "Existing memory collection insert failed "
+                    f"for {existing_item['id']}: {collection_exc}"
+                )
+                raise HTTPException(
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    "The link is already saved, but it could not be added to the collection.",
+                ) from collection_exc
+
             return {
                 "success": True,
                 "duplicate": True,
                 "warning": "This link is already saved in your library.",
                 "item": existing_item,
+                "collection_id": collection_id,
+                "added_to_collection": added_to_collection,
             }
 
         document = await build_knowledge_document(url)
@@ -920,6 +984,24 @@ async def capture(
             for tag in tags
         ]
 
+        try:
+            added_to_collection = add_to_selected_collection(
+                str(created_item["id"])
+            )
+        except Exception as collection_exc:
+            print(
+                "Collection insert failed; deleting partial memory "
+                f"{created_item['id']}: {collection_exc}"
+            )
+            (
+                client.table("knowledge_items")
+                .delete()
+                .eq("id", created_item["id"])
+                .eq("user_id", user.id)
+                .execute()
+            )
+            raise
+
         background_tasks.add_task(
             complete_embedding_later,
             created_item["id"],
@@ -930,6 +1012,8 @@ async def capture(
         return {
             "success": True,
             "item": created_item,
+            "collection_id": collection_id,
+            "added_to_collection": added_to_collection,
         }
 
     except ValueError as exc:

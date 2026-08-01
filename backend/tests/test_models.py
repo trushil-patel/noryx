@@ -9,6 +9,15 @@ def test_capture_accepts_http_url() -> None:
     assert str(request.url).startswith("https://example.com")
 
 
+def test_capture_accepts_optional_collection() -> None:
+    request = CaptureRequest(
+        url="https://example.com/article",
+        collection_id="11111111-1111-1111-1111-111111111111",
+    )
+
+    assert str(request.collection_id) == "11111111-1111-1111-1111-111111111111"
+
+
 def test_metadata_shape() -> None:
     value = GeneratedMetadata(
         title="Memory",

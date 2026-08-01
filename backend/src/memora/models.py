@@ -1,4 +1,5 @@
 from typing import Literal
+from uuid import UUID
 
 from pydantic import BaseModel, Field, HttpUrl, field_validator
 
@@ -24,6 +25,7 @@ class User(BaseModel):
 
 class CaptureRequest(BaseModel):
     url: HttpUrl
+    collection_id: UUID | None = None
 
 
 class CustomTagsUpdate(BaseModel):

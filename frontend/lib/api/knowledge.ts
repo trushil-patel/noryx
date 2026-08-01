@@ -38,6 +38,8 @@ type CreateKnowledgeResponse = {
     status: string;
   };
   warning?: string;
+  collection_id?: string | null;
+  added_to_collection?: boolean;
 };
 
 function normalizePlatform(
@@ -250,6 +252,7 @@ export async function searchKnowledgeItems(
 
 export async function createKnowledgeItem(
   url: string,
+  collectionId?: string,
 ): Promise<CreateKnowledgeResponse> {
   const normalizedUrl = url.trim();
 
@@ -263,6 +266,7 @@ export async function createKnowledgeItem(
       method: "POST",
       body: {
         url: normalizedUrl,
+        collection_id: collectionId || null,
       },
     },
   );

@@ -87,6 +87,7 @@ function ProcessingContent() {
   const startedRef = useRef(false);
 
   const url = searchParams.get("url")?.trim() ?? "";
+  const collectionId = searchParams.get("collection")?.trim() ?? "";
 
   const [currentStep, setCurrentStep] = useState(0);
   const [status, setStatus] =
@@ -120,7 +121,7 @@ function ProcessingContent() {
     async function capture() {
       try {
         const response =
-          await createKnowledgeItem(url);
+          await createKnowledgeItem(url, collectionId || undefined);
 
         if (!mounted) return;
 
@@ -168,7 +169,7 @@ function ProcessingContent() {
       mounted = false;
       window.clearInterval(progressTimer);
     };
-  }, [router, url]);
+  }, [collectionId, router, url]);
 
   const completedSteps =
     status === "complete"

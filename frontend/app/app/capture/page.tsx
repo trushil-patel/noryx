@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AnimatePresence,
@@ -13,6 +13,7 @@ import {
   Check,
   ClipboardCheck,
   FileText,
+  FolderOpen,
   Globe,
   Link2,
   Loader2,
@@ -22,6 +23,10 @@ import {
 } from "lucide-react";
 
 import { createKnowledgeItem } from "@/lib/api/knowledge";
+import {
+  getCollections,
+  type Collection,
+} from "@/lib/api/collections";
 import { cn } from "@/lib/utils";
 
 const supported = [
@@ -107,6 +112,33 @@ export default function CapturePage() {
   const [memoryId, setMemoryId] = useState<string | null>(
     null,
   );
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [selectedCollectionId, setSelectedCollectionId] = useState("");
+  const [collectionsLoading, setCollectionsLoading] = useState(true);
+  const [collectionsError, setCollectionsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    getCollections()
+      .then((values) => {
+        if (mounted) {
+          setCollections(values.filter((collection) => collection.access === "owner"));
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setCollectionsError("Collections could not be loaded. You can still save normally.");
+        }
+      })
+      .finally(() => {
+        if (mounted) setCollectionsLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const isSubmitting = status === "processing";
   const showWorkflow = status !== "idle";
@@ -141,7 +173,10 @@ export default function CapturePage() {
 
     try {
       const response =
-        await createKnowledgeItem(normalizedUrl);
+        await createKnowledgeItem(
+          normalizedUrl,
+          selectedCollectionId || undefined,
+        );
 
       window.clearInterval(progressTimer);
 
@@ -177,6 +212,7 @@ export default function CapturePage() {
     setStatus("idle");
     setCurrentStep(0);
     setMemoryId(null);
+    setSelectedCollectionId("");
     setError(null);
   }
 
@@ -275,6 +311,44 @@ export default function CapturePage() {
                   <ClipboardCheck className="h-3 w-3" />
                   Paste
                 </button>
+              </div>
+
+              <div className="mt-4">
+                <div className="flex items-center justify-between gap-3">
+                  <label
+                    htmlFor="capture-collection"
+                    className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
+                  >
+                    Collection
+                  </label>
+                  <span className="text-[11px] text-muted-foreground">Optional</span>
+                </div>
+                <div className="mt-2 flex items-center gap-2 rounded-2xl border border-border bg-background px-3 py-2 focus-within:border-foreground/20">
+                  <FolderOpen className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <select
+                    id="capture-collection"
+                    value={selectedCollectionId}
+                    onChange={(event) => setSelectedCollectionId(event.target.value)}
+                    disabled={collectionsLoading}
+                    className="min-w-0 flex-1 bg-transparent py-1 text-[13px] text-foreground outline-none disabled:text-muted-foreground"
+                  >
+                    <option value="">
+                      {collectionsLoading
+                        ? "Loading collections..."
+                        : "No collection - save to library only"}
+                    </option>
+                    {collections.map((collection) => (
+                      <option key={collection.id} value={collection.id}>
+                        {collection.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {collectionsError ? (
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    {collectionsError}
+                  </p>
+                ) : null}
               </div>
 
               {error ? (
