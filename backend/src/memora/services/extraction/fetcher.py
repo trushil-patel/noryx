@@ -1,7 +1,9 @@
 import ipaddress
 import socket
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
+
 import httpx
+
 from memora.config import get_settings
 
 USER_AGENT = "Mozilla/5.0 (compatible; MemoraBot/2.0; +https://memora.app)"
@@ -18,14 +20,41 @@ def _assert_public_url(url: str) -> None:
 
 
 async def fetch_page(url: str) -> str:
-    _assert_public_url(url)
     settings = get_settings()
-    async with httpx.AsyncClient(follow_redirects=True, timeout=settings.fetch_timeout_seconds) as client:
-        response = await client.get(url, headers={"User-Agent": USER_AGENT, "Accept": "text/html,application/xhtml+xml"})
-        response.raise_for_status()
-        if "text/html" not in response.headers.get("content-type", ""):
-            raise ValueError(f"Unsupported content type: {response.headers.get('content-type', '')}")
-        if len(response.content) > settings.max_page_bytes:
-            raise ValueError("Page is too large to extract")
-        _assert_public_url(str(response.url))
-        return response.text
+    current_url = url
+    headers = {
+        "User-Agent": USER_AGENT,
+        "Accept": "text/html,application/xhtml+xml",
+    }
+
+    async with httpx.AsyncClient(
+        follow_redirects=False,
+        timeout=settings.fetch_timeout_seconds,
+    ) as client:
+        for redirect_count in range(settings.max_redirects + 1):
+            _assert_public_url(current_url)
+            async with client.stream("GET", current_url, headers=headers) as response:
+                if response.is_redirect:
+                    location = response.headers.get("location")
+                    if not location:
+                        raise ValueError("Redirect response did not include a destination")
+                    if redirect_count == settings.max_redirects:
+                        raise ValueError("Too many redirects")
+                    current_url = urljoin(str(response.url), location)
+                    continue
+
+                response.raise_for_status()
+                content_type = response.headers.get("content-type", "")
+                if "text/html" not in content_type.lower():
+                    raise ValueError(f"Unsupported content type: {content_type}")
+
+                content = bytearray()
+                async for chunk in response.aiter_bytes():
+                    content.extend(chunk)
+                    if len(content) > settings.max_page_bytes:
+                        raise ValueError("Page is too large to extract")
+
+                encoding = response.encoding or "utf-8"
+                return bytes(content).decode(encoding, errors="replace")
+
+    raise ValueError("Unable to fetch URL")

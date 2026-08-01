@@ -1,4 +1,5 @@
 from functools import lru_cache
+
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -15,11 +16,15 @@ class Settings(BaseSettings):
     embedding_model: str = "gemini-embedding-001"
     fetch_timeout_seconds: float = 10.0
     max_page_bytes: int = 5_000_000
+    max_redirects: int = 5
+    enable_diagnostic_endpoints: bool = False
 
     @field_validator("frontend_origins", mode="before")
     @classmethod
     def parse_origins(cls, value: object) -> object:
-        return [x.strip() for x in value.split(",") if x.strip()] if isinstance(value, str) else value
+        if isinstance(value, str):
+            return [item.strip() for item in value.split(",") if item.strip()]
+        return value
 
 
 @lru_cache

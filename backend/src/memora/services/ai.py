@@ -60,7 +60,7 @@ SUMMARY RULES:
 - Explain the real topic, not just the website/page.
 - Include important tools, examples, claims, steps, people, products, or lessons when present.
 - If the content is a list, preserve the list topic and important items.
-- If the content is short or incomplete, be honest and summarize only the visible title/description/content.
+- If content is incomplete, summarize only the visible title, description, and content.
 - Do not write generic phrases like "this content discusses various topics".
 
 TAKEAWAY RULES:
@@ -71,12 +71,12 @@ TAKEAWAY RULES:
 
 WHY IT MATTERS:
 - Write 2 to 3 sentences.
-- Explain why this memory may be useful later for search, learning, decisions, work, creativity, or research.
+- Explain its later value for search, learning, decisions, work, creativity, or research.
 
 TAG RULES:
 - Generate 6 to 10 lowercase search tags.
 - Include broad topics and specific terms.
-- Include products, tools, people, companies, frameworks, technologies, places, exams, or methods when present.
+- Include specific products, people, frameworks, places, exams, or methods when present.
 - Include terms a user may actually search later.
 - Avoid generic tags: content, post, article, video, website, internet, information, page, link.
 - Do not invent unsupported tags.

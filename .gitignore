@@ -1,5 +1,10 @@
 # Secrets
 .env
+.env.local
+.env.production
+.env.development.local
+*.pem
+*.key
 .env.*
 !.env.example
 frontend/.env.local
