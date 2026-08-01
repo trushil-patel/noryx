@@ -5,6 +5,12 @@ export type Platform =
   | "linkedin"
   | "twitter"
   | "blog"
+  | "repository"
+  | "documentation"
+  | "news"
+  | "forum"
+  | "video"
+  | "website"
   | "article";
 
 export interface KnowledgeItem {
@@ -34,6 +40,12 @@ export const platformMeta: Record<Platform, { label: string; color: string; dot:
   linkedin: { label: "LinkedIn", color: "bg-sky-50 text-sky-700 border-sky-100", dot: "bg-sky-600" },
   twitter: { label: "X", color: "bg-neutral-100 text-neutral-800 border-neutral-200", dot: "bg-neutral-900" },
   blog: { label: "Blog", color: "bg-emerald-50 text-emerald-700 border-emerald-100", dot: "bg-emerald-500" },
+  repository: { label: "Repository", color: "bg-slate-100 text-slate-800 border-slate-200", dot: "bg-slate-700" },
+  documentation: { label: "Documentation", color: "bg-cyan-50 text-cyan-700 border-cyan-100", dot: "bg-cyan-500" },
+  news: { label: "News", color: "bg-amber-50 text-amber-700 border-amber-100", dot: "bg-amber-500" },
+  forum: { label: "Forum", color: "bg-violet-50 text-violet-700 border-violet-100", dot: "bg-violet-500" },
+  video: { label: "Video", color: "bg-rose-50 text-rose-700 border-rose-100", dot: "bg-rose-500" },
+  website: { label: "Website", color: "bg-blue-50 text-blue-700 border-blue-100", dot: "bg-blue-500" },
   article: { label: "Article", color: "bg-indigo-50 text-indigo-700 border-indigo-100", dot: "bg-indigo-500" },
 };
 

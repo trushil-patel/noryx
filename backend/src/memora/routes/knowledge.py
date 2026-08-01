@@ -297,7 +297,11 @@ def find_existing_memory(
     return None
 
 
-def platform(url: str) -> str:
+def _host_matches(host: str, domain: str) -> bool:
+    return host == domain or host.endswith(f".{domain}")
+
+
+def platform(url: str, content_type: str | None = None) -> str:
     host = (urlparse(url).hostname or "").lower()
 
     platforms = {
@@ -306,14 +310,27 @@ def platform(url: str) -> str:
         "instagram": ("instagram.com",),
         "linkedin": ("linkedin.com",),
         "twitter": ("twitter.com", "x.com"),
-        "blog": ("medium.com", "substack.com"),
+        "blog": ("medium.com", "substack.com", "dev.to", "hashnode.com"),
+        "repository": ("github.com", "gitlab.com", "bitbucket.org"),
+        "forum": ("stackoverflow.com", "quora.com"),
+        "video": ("vimeo.com", "dailymotion.com"),
     }
 
     for name, domains in platforms.items():
-        if any(domain in host for domain in domains):
+        if any(_host_matches(host, domain) for domain in domains):
             return name
 
-    return "article"
+    content_platforms = {
+        "article": "article",
+        "blog": "blog",
+        "documentation": "documentation",
+        "forum": "forum",
+        "news": "news",
+        "repository": "repository",
+        "video": "video",
+    }
+
+    return content_platforms.get(content_type or "", "website")
 
 
 def item_text(item: dict[str, object]) -> str:
@@ -806,7 +823,7 @@ async def capture(
         payload = {
             "user_id": user.id,
             "original_url": url,
-            "platform": platform(url),
+            "platform": platform(url, document.content_type),
             "title": title,
             "summary": summary,
             "key_takeaways": key_takeaways,

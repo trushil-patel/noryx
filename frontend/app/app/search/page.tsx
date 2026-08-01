@@ -29,6 +29,12 @@ const platformFilters: PlatformFilter[] = [
   "linkedin",
   "instagram",
   "reddit",
+  "repository",
+  "documentation",
+  "news",
+  "forum",
+  "video",
+  "website",
   "article",
   "blog",
 ];

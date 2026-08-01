@@ -39,26 +39,86 @@ type CreateKnowledgeResponse = {
   warning?: string;
 };
 
-function normalizePlatform(platform: string, url = ""): Platform {
-  const value = `${platform} ${url}`.toLowerCase();
+function normalizePlatform(
+  platform: string,
+  url = "",
+  sourceType = "",
+): Platform {
+  const normalizedPlatform = platform.toLowerCase();
+  const normalizedSourceType = sourceType.toLowerCase();
+  let host = "";
 
-  if (value.includes("youtube")) return "youtube";
-  if (value.includes("youtu.be")) return "youtube";
-  if (value.includes("reddit")) return "reddit";
-  if (value.includes("instagram")) return "instagram";
-  if (value.includes("linkedin")) return "linkedin";
+  try {
+    host = new URL(url).hostname.replace(/^www\./, "").toLowerCase();
+  } catch {
+    host = "";
+  }
+
+  const hostMatches = (domain: string) =>
+    host === domain || host.endsWith(`.${domain}`);
+
+  if (normalizedPlatform === "youtube" || hostMatches("youtube.com") || hostMatches("youtu.be")) {
+    return "youtube";
+  }
+  if (normalizedPlatform === "reddit" || hostMatches("reddit.com")) return "reddit";
+  if (normalizedPlatform === "instagram" || hostMatches("instagram.com")) return "instagram";
+  if (normalizedPlatform === "linkedin" || hostMatches("linkedin.com")) return "linkedin";
+  if (
+    normalizedPlatform === "repository" ||
+    normalizedSourceType === "repository" ||
+    hostMatches("github.com") ||
+    hostMatches("gitlab.com") ||
+    hostMatches("bitbucket.org")
+  ) {
+    return "repository";
+  }
+  if (
+    normalizedPlatform === "documentation" ||
+    normalizedSourceType === "documentation"
+  ) {
+    return "documentation";
+  }
+  if (
+    normalizedPlatform === "forum" ||
+    normalizedSourceType === "forum" ||
+    hostMatches("stackoverflow.com") ||
+    hostMatches("quora.com")
+  ) {
+    return "forum";
+  }
+  if (
+    normalizedPlatform === "video" ||
+    normalizedSourceType === "video" ||
+    hostMatches("vimeo.com") ||
+    hostMatches("dailymotion.com")
+  ) {
+    return "video";
+  }
+  if (normalizedPlatform === "news" || normalizedSourceType === "news") return "news";
 
   if (
-    value.includes("twitter") ||
-    value.includes("x.com") ||
-    value === "x"
+    normalizedPlatform === "twitter" ||
+    normalizedPlatform === "x" ||
+    hostMatches("twitter.com") ||
+    hostMatches("x.com")
   ) {
     return "twitter";
   }
 
-  if (value.includes("blog")) return "blog";
+  if (
+    normalizedPlatform === "blog" ||
+    normalizedSourceType === "blog" ||
+    hostMatches("medium.com") ||
+    hostMatches("substack.com") ||
+    hostMatches("dev.to") ||
+    hostMatches("hashnode.com")
+  ) {
+    return "blog";
+  }
+  if (normalizedSourceType === "article") return "article";
+  if (normalizedPlatform === "article" && !normalizedSourceType) return "article";
 
-  return "article";
+  return "website";
 }
 
 function getSourceFromUrl(url: string): string {
@@ -111,6 +171,7 @@ export function normalizeKnowledgeItem(
     platform: normalizePlatform(
       item.platform,
       item.original_url,
+      item.source_type ?? "",
     ),
     title: item.title ?? "Untitled knowledge item",
     source,

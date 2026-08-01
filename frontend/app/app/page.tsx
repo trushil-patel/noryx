@@ -18,6 +18,7 @@ import {
   AlertTriangle,
   BookOpen,
   BookmarkCheck,
+  Code2,
   ExternalLink,
   Globe2,
   Hash,
@@ -213,6 +214,18 @@ function PlatformIcon({ platform }: { platform: KnowledgeItem["platform"] }) {
       return <SiX className={iconClassName} aria-hidden="true" />;
     case "blog":
       return <Rss className={iconClassName} aria-hidden="true" />;
+    case "repository":
+      return <Code2 className={iconClassName} aria-hidden="true" />;
+    case "documentation":
+      return <BookOpen className={iconClassName} aria-hidden="true" />;
+    case "news":
+      return <Newspaper className={iconClassName} aria-hidden="true" />;
+    case "forum":
+      return <MessagesSquare className={iconClassName} aria-hidden="true" />;
+    case "video":
+      return <Video className={iconClassName} aria-hidden="true" />;
+    case "website":
+      return <Globe2 className={iconClassName} aria-hidden="true" />;
     case "article":
       return <Newspaper className={iconClassName} aria-hidden="true" />;
     default:
@@ -396,7 +409,9 @@ function LibraryPageContent() {
         label: "Videos",
         icon: Video,
         count: items.filter(
-          (item) => item.platform === "youtube",
+          (item) =>
+            item.platform === "youtube" ||
+            item.platform === "video",
         ).length,
       },
       {
@@ -453,7 +468,9 @@ function LibraryPageContent() {
 
         case "videos":
           result = result.filter(
-            (item) => item.platform === "youtube",
+            (item) =>
+              item.platform === "youtube" ||
+              item.platform === "video",
           );
           break;
 

@@ -1,5 +1,14 @@
 import React from "react";
-import { MessageCircle, FileText, Rss } from "lucide-react";
+import {
+  BookOpen,
+  Code2,
+  FileText,
+  Globe2,
+  MessageCircle,
+  Newspaper,
+  Play,
+  Rss,
+} from "lucide-react";
 
 import { platformMeta, type Platform } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
@@ -35,6 +44,12 @@ const icons: Record<Platform, React.ComponentType<{ className?: string }>> = {
   instagram: InstagramIcon,
   reddit: MessageCircle,
   twitter: TwitterIcon,
+  repository: Code2,
+  documentation: BookOpen,
+  news: Newspaper,
+  forum: MessageCircle,
+  video: Play,
+  website: Globe2,
   article: FileText,
   blog: Rss,
 };

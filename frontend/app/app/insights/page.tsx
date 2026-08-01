@@ -43,6 +43,12 @@ const PLATFORM_COLORS: Record<Platform, string> = {
   linkedin: "#0284c7",
   twitter: "#737373",
   blog: "#10b981",
+  repository: "#334155",
+  documentation: "#0891b2",
+  news: "#d97706",
+  forum: "#7c3aed",
+  video: "#e11d48",
+  website: "#2563eb",
   article: "#6366f1",
 };
 
@@ -53,6 +59,12 @@ const PLATFORM_LABELS: Record<Platform, string> = {
   linkedin: "LinkedIn",
   twitter: "X",
   blog: "Blogs",
+  repository: "Repositories",
+  documentation: "Documentation",
+  news: "News",
+  forum: "Forums",
+  video: "Videos",
+  website: "Websites",
   article: "Articles",
 };
 
