@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+
 from memora.auth import CurrentUser
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])

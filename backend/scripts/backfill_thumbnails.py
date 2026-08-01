@@ -1,12 +1,12 @@
 import asyncio
-from pathlib import Path
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from memora.services.extraction import build_knowledge_document
-from memora.supabase import admin_client
+from memora.services.extraction import build_knowledge_document  # noqa: E402
+from memora.supabase import admin_client  # noqa: E402
 
 
 async def main() -> None:

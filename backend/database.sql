@@ -171,9 +171,9 @@ for select using (auth.uid() = requester_id or auth.uid() = addressee_id);
 create policy "Users send connection requests" on public.connections
 for insert with check (auth.uid() = requester_id and status = 'pending');
 
-create policy "Recipients answer connection requests" on public.connections
-for update using (auth.uid() = addressee_id)
-with check (auth.uid() = addressee_id);
+-- Connection updates are performed by the authenticated backend after it verifies
+-- that the caller is the addressee. Direct PostgREST updates are intentionally denied.
+revoke update on public.connections from anon, authenticated;
 
 create policy "Participants remove connections" on public.connections
 for delete using (auth.uid() = requester_id or auth.uid() = addressee_id);

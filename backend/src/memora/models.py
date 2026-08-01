@@ -1,7 +1,20 @@
 from typing import Literal
+
 from pydantic import BaseModel, Field, HttpUrl
 
-ContentType = Literal["article", "homepage", "documentation", "government", "news", "blog", "product", "video", "repository", "forum", "unknown"]
+ContentType = Literal[
+    "article",
+    "homepage",
+    "documentation",
+    "government",
+    "news",
+    "blog",
+    "product",
+    "video",
+    "repository",
+    "forum",
+    "unknown",
+]
 
 
 class User(BaseModel):

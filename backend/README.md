@@ -16,6 +16,10 @@ Copy-Item .env.example .env
 
 Fill in `.env` with the same Supabase and Gemini values used by the old backend. Never commit `.env` or expose the service-role key to the frontend.
 
+Diagnostic database and AI endpoints are disabled by default. Only enable them
+temporarily in a trusted development environment with
+`ENABLE_DIAGNOSTIC_ENDPOINTS=true`; they still require an authenticated user.
+
 Open the Supabase SQL editor and run `database.sql` if the tables do not already exist. If your existing schema is already working, do not recreate it.
 
 ## Run

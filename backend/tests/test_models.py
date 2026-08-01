@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from memora.models import CollectionCreate, CaptureRequest, GeneratedMetadata
+from memora.models import CaptureRequest, CollectionCreate, GeneratedMetadata
 
 
 def test_capture_accepts_http_url() -> None:
@@ -10,7 +10,13 @@ def test_capture_accepts_http_url() -> None:
 
 
 def test_metadata_shape() -> None:
-    value = GeneratedMetadata(title="Memory", summary="Summary", key_takeaways=["One"], why_it_matters="Useful", tags=["ai"])
+    value = GeneratedMetadata(
+        title="Memory",
+        summary="Summary",
+        key_takeaways=["One"],
+        why_it_matters="Useful",
+        tags=["ai"],
+    )
     assert value.tags == ["ai"]
 
 

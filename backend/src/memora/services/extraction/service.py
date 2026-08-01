@@ -15,7 +15,6 @@ from memora.models import (
 )
 from memora.services.extraction.fetcher import fetch_page
 
-
 ExtractionMethod = Literal["article", "homepage", "fallback"]
 
 
