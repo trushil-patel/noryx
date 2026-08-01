@@ -11,12 +11,14 @@ def memory(
     summary: str = "",
     tags: list[str] | None = None,
     similarity: float | None = None,
+    custom_tags: list[str] | None = None,
 ) -> dict[str, object]:
     item: dict[str, object] = {
         "id": title,
         "title": title,
         "summary": summary,
         "knowledge_tags": [{"tag": tag} for tag in tags or []],
+        "custom_tags": custom_tags or [],
         "key_takeaways": [],
     }
     if similarity is not None:
@@ -137,3 +139,16 @@ def test_irrelevant_item_is_filtered_without_semantic_support() -> None:
         expanded_terms,
         10,
     ) == []
+
+
+def test_custom_tags_are_searchable() -> None:
+    item = memory("Design notes", custom_tags=["noryx launch"])
+    _, phrases, core_terms, expanded_terms = build_search_plan("noryx launch", [item])
+
+    assert rerank_search_results(
+        [item],
+        phrases,
+        core_terms,
+        expanded_terms,
+        10,
+    ) == [item]

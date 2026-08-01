@@ -6,12 +6,11 @@ import { motion } from "framer-motion";
 import {
   Bookmark,
   ExternalLink,
-  MoreHorizontal,
   Sparkles,
 } from "lucide-react";
 
 import { PlatformBadge } from "@/components/common/platform-badge";
-import { Button } from "@/components/ui/button";
+import { CustomTagEditor } from "@/components/dashboard/custom-tag-editor";
 import type { KnowledgeItem } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +22,15 @@ export function KnowledgeCard({
   index?: number;
 }) {
   const [saved, setSaved] = useState(!!item.bookmarked);
+  const [customTags, setCustomTags] = useState(item.customTags ?? []);
   const hasThumbnail = Boolean(item.thumbnailUrl);
+  const originalCustomTags = new Set(
+    (item.customTags ?? []).map((tag) => tag.toLowerCase()),
+  );
+  const aiTags = item.tags.filter(
+    (tag) => !originalCustomTags.has(tag.toLowerCase()),
+  );
+  const displayedTags = Array.from(new Set([...aiTags, ...customTags]));
 
   return (
     <motion.article
@@ -147,7 +154,7 @@ export function KnowledgeCard({
         </div>
 
         <div className="flex flex-wrap gap-1.5 pt-1">
-          {item.tags.slice(0, 3).map((tag) => (
+          {displayedTags.slice(0, 3).map((tag) => (
             <span
               key={tag}
               className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-secondary-foreground/80"
@@ -168,13 +175,13 @@ export function KnowledgeCard({
             <ExternalLink className="h-3 w-3" />
           </a>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-          >
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
+          <CustomTagEditor
+            itemId={item.id}
+            allTags={item.tags}
+            customTags={customTags}
+            onUpdated={setCustomTags}
+            className="h-7 w-7 opacity-100"
+          />
         </div>
       </div>
     </motion.article>

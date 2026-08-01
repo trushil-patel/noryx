@@ -45,6 +45,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { CollectionPicker } from "@/components/collections/collection-picker";
+import { CustomTagEditor } from "@/components/dashboard/custom-tag-editor";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import {
   deleteKnowledgeItem,
@@ -554,6 +555,30 @@ function LibraryPageContent() {
     }
   }
 
+  function handleTagsChange(item: KnowledgeItem, customTags: string[]) {
+    const previousCustomTagKeys = new Set(
+      (item.customTags ?? []).map((tag) => tag.toLowerCase()),
+    );
+    const aiTags = item.tags.filter(
+      (tag) => !previousCustomTagKeys.has(tag.toLowerCase()),
+    );
+
+    setItems((currentItems) => {
+      const nextItems = currentItems.map((current) =>
+        current.id === item.id
+          ? {
+              ...current,
+              customTags,
+              tags: Array.from(new Set([...aiTags, ...customTags])),
+            }
+          : current,
+      );
+
+      updateLibraryCaches(nextItems);
+      return nextItems;
+    });
+  }
+
   return (
     <div className="mx-auto max-w-[1600px] px-4 pb-24 pt-8 lg:px-8">
       <motion.header
@@ -810,6 +835,9 @@ function LibraryPageContent() {
                       onDelete={() =>
                         void handleDelete(item)
                       }
+                      onTagsChange={(tags) =>
+                        handleTagsChange(item, tags)
+                      }
                     />
                   ),
                 )}
@@ -827,11 +855,13 @@ function MemoryTile({
   index,
   isDeleting,
   onDelete,
+  onTagsChange,
 }: {
   item: KnowledgeItem;
   index: number;
   isDeleting: boolean;
   onDelete: () => void;
+  onTagsChange: (tags: string[]) => void;
 }) {
   const color =
     memoryColors[index % memoryColors.length];
@@ -927,6 +957,13 @@ function MemoryTile({
               </div>
 
               <div className="flex items-center gap-1">
+                <CustomTagEditor
+                  itemId={item.id}
+                  allTags={item.tags}
+                  customTags={item.customTags ?? []}
+                  onUpdated={onTagsChange}
+                  dark
+                />
                 <CollectionPicker
                   memoryId={item.id}
                   memoryTitle={item.title}
@@ -976,6 +1013,13 @@ function MemoryTile({
               </div>
 
               <div className="flex items-center gap-1">
+                <CustomTagEditor
+                  itemId={item.id}
+                  allTags={item.tags}
+                  customTags={item.customTags ?? []}
+                  onUpdated={onTagsChange}
+                  className="h-9 w-9"
+                />
                 <CollectionPicker
                   memoryId={item.id}
                   memoryTitle={item.title}

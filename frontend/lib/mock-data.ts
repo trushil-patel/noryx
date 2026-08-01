@@ -27,6 +27,7 @@ export interface KnowledgeItem {
   takeaways: string[];
   whyItMatters: string;
   tags: string[];
+  customTags?: string[];
   bookmarked?: boolean;
   readTime?: string;
   thumbnailHue?: number;

@@ -11,6 +11,7 @@ create table if not exists public.knowledge_items (
   why_it_matters text,
   status text not null default 'processing',
   source_type text not null default 'link',
+  custom_tags text[] not null default '{}',
   embedding vector(3072),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -30,6 +31,7 @@ create policy "Users read own knowledge" on public.knowledge_items for select us
 create policy "Users read own tags" on public.knowledge_tags for select using (exists (select 1 from public.knowledge_items k where k.id = knowledge_item_id and k.user_id = auth.uid()));
 
 create index if not exists knowledge_items_user_created_idx on public.knowledge_items (user_id, created_at desc);
+create index if not exists knowledge_items_custom_tags_idx on public.knowledge_items using gin (custom_tags);
 create index if not exists knowledge_items_embedding_idx on public.knowledge_items using hnsw (embedding vector_cosine_ops);
 
 create table if not exists public.collections (

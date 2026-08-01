@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api/collections", tags=["collections"])
 
 MEMORY_SELECT = (
     "id,user_id,original_url,canonical_url,platform,title,summary,key_takeaways,"
-    "why_it_matters,thumbnail_url,status,source_type,created_at,updated_at,"
+    "why_it_matters,thumbnail_url,status,source_type,custom_tags,created_at,updated_at,"
     "knowledge_tags(id,tag)"
 )
 COLLECTION_SELECT = "id,owner_id,name,description,visibility,created_at,updated_at"

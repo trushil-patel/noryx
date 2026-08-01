@@ -13,6 +13,7 @@ export type BackendKnowledgeItem = {
   similarity?: number;
   status: string;
   source_type: string | null;
+  custom_tags?: string[] | null;
   created_at: string;
   updated_at: string;
   knowledge_tags?: {
@@ -160,6 +161,7 @@ export function normalizeKnowledgeItem(
 
   const tags =
     item.knowledge_tags?.map((tag) => tag.tag) ?? [];
+  const customTags = item.custom_tags ?? [];
 
   const similarity =
     typeof item.similarity === "number"
@@ -200,7 +202,8 @@ export function normalizeKnowledgeItem(
     whyItMatters:
       item.why_it_matters ??
       "Why this matters will appear here after AI processing.",
-    tags,
+    tags: Array.from(new Set([...tags, ...customTags])),
+    customTags,
     thumbnailHue: 275,
   };
 }
@@ -277,6 +280,26 @@ export async function deleteKnowledgeItem(
     `/api/knowledge/${encodeURIComponent(memoryId)}`,
     {
       method: "DELETE",
+    },
+  );
+}
+
+type UpdateCustomTagsResponse = {
+  success: boolean;
+  memory_id: string;
+  custom_tags: string[];
+  updated_at: string;
+};
+
+export async function updateKnowledgeCustomTags(
+  memoryId: string,
+  tags: string[],
+): Promise<UpdateCustomTagsResponse> {
+  return backendRequest<UpdateCustomTagsResponse>(
+    `/api/knowledge/${encodeURIComponent(memoryId)}/tags`,
+    {
+      method: "PATCH",
+      body: { tags },
     },
   );
 }

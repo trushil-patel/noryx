@@ -7,7 +7,7 @@ from uuid import UUID
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, status
 
 from memora.auth import CurrentUser
-from memora.models import CaptureRequest
+from memora.models import CaptureRequest, CustomTagsUpdate
 from memora.services.ai import (
     embedding_text,
     generate_document_embedding,
@@ -21,7 +21,7 @@ router = APIRouter(prefix="/api/knowledge", tags=["knowledge"])
 
 SELECT = (
     "id,user_id,original_url,canonical_url,platform,title,summary,key_takeaways,"
-    "why_it_matters,thumbnail_url,status,source_type,created_at,updated_at,"
+    "why_it_matters,thumbnail_url,status,source_type,custom_tags,created_at,updated_at,"
     "knowledge_tags(id,tag)"
 )
 
@@ -144,9 +144,10 @@ def token_match_quality(query_term: str, candidate: str) -> float:
 
 def item_search_vocabulary(item: dict[str, object]) -> list[str]:
     tags = item.get("knowledge_tags") or []
-    tag_text = " ".join(
+    custom_tags = item.get("custom_tags") or []
+    tag_text = " ".join([
         str(tag.get("tag", "")) for tag in tags if isinstance(tag, dict)
-    )
+    ] + [str(tag) for tag in custom_tags if isinstance(tag, str)])
     return search_terms(
         " ".join(
             [
@@ -335,11 +336,12 @@ def platform(url: str, content_type: str | None = None) -> str:
 
 def item_text(item: dict[str, object]) -> str:
     tags = item.get("knowledge_tags") or []
-    tag_text = " ".join(
+    custom_tags = item.get("custom_tags") or []
+    tag_text = " ".join([
         str(tag.get("tag", ""))
         for tag in tags
         if isinstance(tag, dict)
-    )
+    ] + [str(tag) for tag in custom_tags if isinstance(tag, str)])
 
     takeaways = item.get("key_takeaways") or []
     takeaway_text = (
@@ -374,11 +376,12 @@ def relevance_score(
     url = str(item.get("original_url") or "").lower()
 
     tags = item.get("knowledge_tags") or []
+    custom_tags = item.get("custom_tags") or []
     tag_values = [
         str(tag.get("tag", "")).lower()
         for tag in tags
         if isinstance(tag, dict)
-    ]
+    ] + [str(tag).lower() for tag in custom_tags if isinstance(tag, str)]
     tag_text = " ".join(tag_values)
 
     similarity = item.get("similarity")
@@ -737,6 +740,44 @@ async def delete_memory(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Unable to delete this memory.",
         ) from exc
+
+
+@router.patch("/{memory_id}/tags")
+async def update_custom_tags(
+    memory_id: UUID,
+    body: CustomTagsUpdate,
+    user: CurrentUser,
+) -> dict[str, object]:
+    client = admin_client()
+    existing = (
+        client.table("knowledge_items")
+        .select("id")
+        .eq("id", str(memory_id))
+        .eq("user_id", user.id)
+        .limit(1)
+        .execute()
+        .data
+        or []
+    )
+
+    if not existing:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Memory not found.")
+
+    updated_at = datetime.now(UTC).isoformat()
+    (
+        client.table("knowledge_items")
+        .update({"custom_tags": body.tags, "updated_at": updated_at})
+        .eq("id", str(memory_id))
+        .eq("user_id", user.id)
+        .execute()
+    )
+
+    return {
+        "success": True,
+        "memory_id": str(memory_id),
+        "custom_tags": body.tags,
+        "updated_at": updated_at,
+    }
 
 
 @router.post(

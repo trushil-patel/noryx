@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from memora.models import CaptureRequest, CollectionCreate, GeneratedMetadata
+from memora.models import CaptureRequest, CollectionCreate, CustomTagsUpdate, GeneratedMetadata
 
 
 def test_capture_accepts_http_url() -> None:
@@ -37,3 +37,14 @@ def test_collection_accepts_connections() -> None:
         connection_ids=["11111111-1111-1111-1111-111111111111"],
     )
     assert collection.connection_ids == ["11111111-1111-1111-1111-111111111111"]
+
+
+def test_custom_tags_are_normalized_and_deduplicated() -> None:
+    value = CustomTagsUpdate(tags=[" #Read Later ", "read later", "  Project   Noryx  "])
+
+    assert value.tags == ["read later", "project noryx"]
+
+
+def test_custom_tags_reject_overlong_values() -> None:
+    with pytest.raises(ValidationError):
+        CustomTagsUpdate(tags=["x" * 41])
