@@ -22,7 +22,7 @@ filelock==3.32.0
 google-auth==2.55.2
 google-genai==1.75.0
 h11==0.16.0
-h2==4.3.0
+h2==4.4.1
 hpack==4.2.0
 htmldate==1.10.0
 httpcore==1.0.9
