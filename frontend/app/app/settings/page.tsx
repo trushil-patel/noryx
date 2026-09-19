@@ -12,7 +12,6 @@ import {
   LogOut,
   Palette,
   Shield,
-  Sparkles,
   User,
 } from "lucide-react";
 
@@ -722,24 +721,6 @@ export default function SettingsPage() {
               </div>
             </SectionCard>
           )}
-
-          <div className="mt-6 flex items-center gap-3 rounded-2xl border border-border bg-gradient-to-br from-accent-soft to-surface p-5">
-            <Sparkles className="h-5 w-5 text-accent" />
-
-            <div className="flex-1">
-              <div className="text-[13.5px] font-semibold">
-                You&apos;re on Free
-              </div>
-
-              <div className="text-[12px] text-muted-foreground">
-                Upgrade for unlimited captures and deeper AI.
-              </div>
-            </div>
-
-            <Button type="button" className="rounded-full">
-              Upgrade
-            </Button>
-          </div>
         </div>
       </div>
     </div>

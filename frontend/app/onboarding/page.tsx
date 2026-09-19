@@ -152,11 +152,10 @@ export default function OnboardingPage() {
                 We&apos;ve set up your library. Start by capturing your first link — noryX will do
                 the rest.
               </p>
-              <div className="mt-8 grid gap-3 sm:grid-cols-3">
+              <div className="mt-8 grid gap-3 sm:grid-cols-2">
                 {[
                   { label: "AI-summarized", value: "Every link" },
                   { label: "Search by asking", value: "Natural language" },
-                  { label: "Captures / mo", value: "100 free" },
                 ].map((c) => (
                   <div key={c.label} className="rounded-xl border border-border bg-surface p-3.5">
                     <div className="text-[11px] text-muted-foreground">{c.label}</div>

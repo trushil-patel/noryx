@@ -14,7 +14,6 @@ import {
   MessageCircle,
   FileText,
   Rss,
-  Check,
   Star,
   Command,
 } from "lucide-react";
@@ -111,7 +110,6 @@ export default function Landing() {
           <nav className="hidden items-center gap-7 text-[13px] text-muted-foreground md:flex">
             <a href="#features" className="hover:text-foreground">Features</a>
             <a href="#how" className="hover:text-foreground">How it works</a>
-            <a href="#pricing" className="hover:text-foreground">Pricing</a>
             <a href="#faq" className="hover:text-foreground">FAQ</a>
           </nav>
           <div className="flex items-center gap-2">
@@ -186,7 +184,7 @@ export default function Landing() {
               href="/onboarding"
               className="inline-flex items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-[13.5px] font-medium text-primary-foreground hover:opacity-90"
             >
-              Start free <ArrowRight className="h-3.5 w-3.5" />
+              Get started <ArrowRight className="h-3.5 w-3.5" />
             </Link>
             <Link
               href="#how"
@@ -376,78 +374,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Pricing */}
-      <section id="pricing" className="border-y border-border bg-surface">
-        <div className="mx-auto max-w-5xl px-5 py-24 text-center">
-          <p className="text-[12px] font-semibold uppercase tracking-wider text-accent">Pricing</p>
-          <h2 className="mt-3 text-4xl font-semibold tracking-tight">Simple. Fair. Free to start.</h2>
-          <div className="mt-12 grid gap-4 sm:grid-cols-2">
-            {[
-              {
-                name: "Free",
-                price: "$0",
-                per: "forever",
-                feats: ["100 captures / month", "AI summaries", "Natural language search", "Web + browser extension"],
-                cta: "Get started",
-                highlight: false,
-              },
-              {
-                name: "Pro",
-                price: "$8",
-                per: "per month",
-                feats: [
-                  "Unlimited captures",
-                  "Deep insights & digests",
-                  "Priority AI",
-                  "Advanced integrations",
-                  "Export anytime",
-                ],
-                cta: "Start 14-day trial",
-                highlight: true,
-              },
-            ].map((p) => (
-              <motion.div
-                key={p.name}
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className={`relative rounded-3xl border p-7 text-left ${
-                  p.highlight ? "border-primary bg-background shadow-float" : "border-border bg-background"
-                }`}
-              >
-                {p.highlight && (
-                  <span className="absolute -top-3 right-6 rounded-full bg-primary px-2.5 py-0.5 text-[10.5px] font-medium text-primary-foreground">
-                    Most popular
-                  </span>
-                )}
-                <div className="text-[13px] font-medium text-muted-foreground">{p.name}</div>
-                <div className="mt-3 flex items-baseline gap-1.5">
-                  <span className="text-4xl font-semibold tracking-tight">{p.price}</span>
-                  <span className="text-[13px] text-muted-foreground">{p.per}</span>
-                </div>
-                <ul className="mt-6 space-y-2.5">
-                  {p.feats.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-[13.5px]">
-                      <Check className="mt-0.5 h-3.5 w-3.5 text-accent" /> {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  href="/onboarding"
-                  className={`mt-7 flex items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-[13px] font-medium transition ${
-                    p.highlight
-                      ? "bg-primary text-primary-foreground hover:opacity-90"
-                      : "border border-border bg-surface hover:border-foreground/20"
-                  }`}
-                >
-                  {p.cta}
-                </Link>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* FAQ */}
       <section id="faq" className="mx-auto max-w-3xl px-5 py-24">
         <div className="text-center">
@@ -484,13 +410,13 @@ export default function Landing() {
               Your ideas deserve a smarter home.
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-[14.5px] text-primary-foreground/70">
-              Start with 100 free captures. Cancel anytime. No credit card required.
+              Save your first link and start building your personal knowledge library.
             </p>
             <Link
               href="/onboarding"
               className="mt-7 inline-flex items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-[13.5px] font-medium text-primary hover:opacity-90"
             >
-              Get noryX free <ArrowRight className="h-3.5 w-3.5" />
+              Get started <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
         </div>

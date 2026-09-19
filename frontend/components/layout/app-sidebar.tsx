@@ -256,7 +256,7 @@ export function AppSidebar() {
 
             <div className="truncate text-[11px] text-muted-foreground">
               {profile?.email ||
-                "Free plan"}
+                "Your account"}
             </div>
           </div>
 

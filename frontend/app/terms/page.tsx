@@ -5,7 +5,7 @@ export const metadata: Metadata = { title: 'Terms of Service - noryX' };
 
 export default function TermsPage() {
   return (
-    <LegalPage title='Terms of Service' description='These terms govern your access to and use of the noryX website and service.' updated='21 July 2026'>
+    <LegalPage title='Terms of Service' description='These terms govern your access to and use of the noryX website and service.' updated='19 September 2026'>
       <section>
         <h2>1. Acceptance</h2>
         <p>By creating an account or using noryX, you agree to these Terms and our <a href='/privacy'>Privacy Policy</a>. If you do not agree, do not use the service. You must be at least 18 years old and legally capable of entering into this agreement.</p>
@@ -48,27 +48,23 @@ export default function TermsPage() {
         <p>The service, software, branding, design, and other noryX materials are owned by us or our licensors. These Terms give you a limited, revocable, non-transferable right to use the service for its intended purpose; they do not transfer ownership of noryX intellectual property.</p>
       </section>
       <section>
-        <h2>9. Plans and payment</h2>
-        <p>Some features may be free, limited, or paid. If paid plans are offered, pricing, billing period, taxes, renewal, and cancellation terms shown at purchase will apply. We will not charge you unless you expressly authorize a purchase.</p>
-      </section>
-      <section>
-        <h2>10. Availability and termination</h2>
+        <h2>9. Availability and termination</h2>
         <p>We may modify, suspend, or discontinue features and may impose reasonable usage limits. You may stop using noryX at any time. We may restrict access if you materially violate these Terms, create security or legal risk, or misuse the service. To request account deletion, email <a href='mailto:trushilpatel27123@gmail.com'>trushilpatel27123@gmail.com</a>.</p>
       </section>
       <section>
-        <h2>11. Disclaimers</h2>
+        <h2>10. Disclaimers</h2>
         <p>To the maximum extent permitted by law, noryX is provided “as is” and “as available.” We do not guarantee uninterrupted operation, that all content can be extracted, that AI output will be accurate, or that saved third-party content will remain available. Nothing in these Terms excludes rights that cannot lawfully be excluded.</p>
       </section>
       <section>
-        <h2>12. Limitation of liability</h2>
+        <h2>11. Limitation of liability</h2>
         <p>To the maximum extent permitted by law, noryX and its operator will not be liable for indirect, incidental, special, consequential, or punitive loss, or for loss of data, profits, revenue, goodwill, or business opportunity. Our aggregate liability for a claim will not exceed the greater of the amount you paid to noryX in the six months before the event or INR 1,000. This does not limit liability that cannot legally be limited.</p>
       </section>
       <section>
-        <h2>13. Governing law</h2>
+        <h2>12. Governing law</h2>
         <p>These Terms are governed by the laws of India. Subject to mandatory consumer rights or a dispute forum required by law, courts with jurisdiction in Gujarat, India will have exclusive jurisdiction over disputes relating to these Terms or the service.</p>
       </section>
       <section>
-        <h2>14. Changes and contact</h2>
+        <h2>13. Changes and contact</h2>
         <p>We may update these Terms as noryX changes. We will post the revised version here and update the date above. Continued use after an update means you accept the revised Terms to the extent permitted by law. Questions can be sent to <a href='mailto:trushilpatel27123@gmail.com'>trushilpatel27123@gmail.com</a>.</p>
       </section>
     </LegalPage>

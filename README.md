@@ -68,3 +68,8 @@ npm.cmd audit --omit=dev
 
 See [project documentation](docs/MEMORA_PROJECT_DOCUMENTATION.md) and
 [API documentation](docs/MEMORA_API_DOCS.md) for implementation details.
+
+If you are learning the project from scratch, start with the
+[beginner-friendly codebase handbook](docs/NORYX_CODEBASE_GUIDE.md). It traces
+the frontend, backend, Supabase database/auth, and Gemini flows step by step and
+also identifies current placeholder features and schema gaps.
