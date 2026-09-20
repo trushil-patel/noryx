@@ -14,7 +14,6 @@ import {
   MessageCircle,
   FileText,
   Rss,
-  Star,
   Command,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
@@ -56,25 +55,6 @@ const steps = [
   { n: "01", title: "Paste any link", desc: "From YouTube, X, LinkedIn, Reddit, or the open web." },
   { n: "02", title: "AI reads it for you", desc: "Summary, takeaways, tags — in under 8 seconds." },
   { n: "03", title: "Search it later", desc: "Just ask. noryX finds it, even months later." },
-];
-
-const testimonials = [
-  {
-    quote:
-      "I used to bookmark hundreds of things and never revisit them. noryX is the first tool that actually made my saves useful.",
-    name: "Anna Petrov",
-    role: "Product Lead, Linear",
-  },
-  {
-    quote: "It's the second brain I always wanted — but without the setup, the tags, or the guilt.",
-    name: "Marcus Yao",
-    role: "Founder, Studio Yao",
-  },
-  {
-    quote: "noryX feels like it was designed by Apple and staffed by OpenAI.",
-    name: "Priya Ramanathan",
-    role: "Investor, Neo",
-  },
 ];
 
 const faqs = [
@@ -333,44 +313,6 @@ export default function Landing() {
               </motion.div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="mx-auto max-w-6xl px-5 py-24">
-        <div className="mx-auto max-w-2xl text-center">
-          <p className="text-[12px] font-semibold uppercase tracking-wider text-accent">Loved by builders</p>
-          <h2 className="mt-3 text-4xl font-semibold tracking-tight">Praise from real users.</h2>
-        </div>
-        <div className="mt-12 grid gap-4 md:grid-cols-3">
-          {testimonials.map((t, i) => (
-            <motion.figure
-              key={t.name}
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.06 }}
-              className="rounded-3xl border border-border bg-surface p-6"
-            >
-              <div className="flex gap-0.5 text-amber-500">
-                {Array.from({ length: 5 }).map((_, k) => (
-                  <Star key={k} className="h-3.5 w-3.5 fill-current" />
-                ))}
-              </div>
-              <blockquote className="mt-4 text-[14.5px] leading-relaxed text-foreground">
-                &quot;{t.quote}&quot;
-              </blockquote>
-              <figcaption className="mt-5 flex items-center gap-3">
-                <div className="grid h-9 w-9 place-items-center rounded-full bg-accent-soft text-[11px] font-semibold text-accent">
-                  {t.name.split(" ").map((n) => n[0]).join("")}
-                </div>
-                <div>
-                  <div className="text-[12.5px] font-semibold">{t.name}</div>
-                  <div className="text-[11.5px] text-muted-foreground">{t.role}</div>
-                </div>
-              </figcaption>
-            </motion.figure>
-          ))}
         </div>
       </section>
 
