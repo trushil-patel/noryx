@@ -40,3 +40,22 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 Vercel Web Analytics is included globally through `@vercel/analytics/next` in `app/layout.tsx`. Enable Web Analytics in the Vercel project dashboard, then deploy to start collecting page views. No additional environment variables are required.
 
 See the [Vercel Web Analytics setup guide](https://vercel.com/docs/analytics/quickstart).
+
+
+## Library loading
+
+The library reads its card fields directly from Supabase using the signed-in user's
+JWT, the existing SELECT RLS policies on `knowledge_items` and `knowledge_tags`,
+and an explicit `user_id` filter. This avoids the extra backend hop for reads;
+AI operations and mutations still use FastAPI. Do not use a service-role key in
+the frontend or disable RLS to enable these reads.
+
+A versioned, per-user browser snapshot displays cards immediately on return visits
+while the database refreshes in the background. Snapshots expire after 24 hours
+and are cleared on sign-out. Successful capture, delete, and tag changes update
+the current user's snapshot. Storage failures fall back to in-memory caching;
+first visits without a snapshot still require a database request.
+
+Run `npm test` (Node 22.6+), `npm run lint`, and `npm run build` to verify changes.
+The cache tests cover delayed requests, account separation, mutation races,
+sign-out, expiration, corrupted storage, and offline recovery.

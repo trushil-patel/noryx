@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -11,8 +11,11 @@ import {
 
 import { Logo } from "@/components/brand/logo";
 import { createSupabaseClient } from "@/lib/supabase/client";
+import { libraryCache } from "@/lib/api/library-cache";
 
 export default function LoginPage() {
+  // Also cover logout performed by the server /logout route.
+  useEffect(() => { libraryCache.clear(); }, []);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

@@ -1,4 +1,6 @@
 import { backendRequest } from "@/lib/api/backend";
+import { libraryCache } from "@/lib/api/library-cache";
+import { createSupabaseClient } from "@/lib/supabase/client";
 import type { KnowledgeItem, Platform } from "@/lib/mock-data";
 
 export type BackendKnowledgeItem = {
@@ -27,16 +29,9 @@ export type KnowledgeResponse = {
   items: BackendKnowledgeItem[];
 };
 
-let pendingKnowledgeItemsRequest: Promise<KnowledgeItem[]> | null = null;
-
 type CreateKnowledgeResponse = {
   success: boolean;
-  item: {
-    id: string;
-    original_url: string;
-    platform: string;
-    status: string;
-  };
+  item: BackendKnowledgeItem;
   warning?: string;
   collection_id?: string | null;
   added_to_collection?: boolean;
@@ -210,22 +205,36 @@ export function normalizeKnowledgeItem(
   };
 }
 
-export async function getKnowledgeItems(): Promise<
-  KnowledgeItem[]
-> {
-  if (pendingKnowledgeItemsRequest) {
-    return pendingKnowledgeItemsRequest;
+async function libraryUserId(): Promise<string> {
+  const { data: { session }, error } = await createSupabaseClient().auth.getSession();
+  if (error) throw error;
+  if (!session) {
+    libraryCache.clear();
+    throw new Error("No active Supabase session found.");
   }
+  return session.user.id;
+}
 
-  pendingKnowledgeItemsRequest = backendRequest<KnowledgeResponse>(
-    "/api/knowledge",
-  ).then((data) => data.items.map(normalizeKnowledgeItem));
+export async function getKnowledgeItems(options: {
+  onCached?: (items: KnowledgeItem[]) => void;
+} = {}): Promise<KnowledgeItem[]> {
+  const userId = await libraryUserId();
+  const cached = libraryCache.read(userId);
+  if (cached !== null) options.onCached?.(cached.map(normalizeKnowledgeItem));
 
-  try {
-    return await pendingKnowledgeItemsRequest;
-  } finally {
-    pendingKnowledgeItemsRequest = null;
-  }
+  const rows = await libraryCache.refresh(userId, async () => {
+    // The user's JWT and RLS protect this read. The explicit owner filter
+    // excludes memories that are merely shared with the current user.
+    const { data, error } = await createSupabaseClient()
+      .from("knowledge_items")
+      .select("id,original_url,platform,title,summary,key_takeaways,why_it_matters,thumbnail_url,status,source_type,custom_tags,created_at,updated_at,knowledge_tags(id,tag)")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    if (await libraryUserId() !== userId) throw new Error("Your account has changed.");
+    return (data ?? []) as BackendKnowledgeItem[];
+  });
+  return rows.map(normalizeKnowledgeItem);
 }
 
 export async function searchKnowledgeItems(
@@ -260,7 +269,8 @@ export async function createKnowledgeItem(
     throw new Error("URL is required.");
   }
 
-  return backendRequest<CreateKnowledgeResponse>(
+  const userId = await libraryUserId();
+  const response = await backendRequest<CreateKnowledgeResponse>(
     "/api/knowledge",
     {
       method: "POST",
@@ -270,6 +280,12 @@ export async function createKnowledgeItem(
       },
     },
   );
+  if (await libraryUserId() === userId) {
+    libraryCache.update(userId, (items) => [
+      response.item, ...items.filter((item) => item.id !== response.item.id),
+    ].sort((a, b) => b.created_at.localeCompare(a.created_at)));
+  }
+  return response;
 }
 
 type DeleteKnowledgeResponse = {
@@ -280,12 +296,17 @@ type DeleteKnowledgeResponse = {
 export async function deleteKnowledgeItem(
   memoryId: string,
 ): Promise<DeleteKnowledgeResponse> {
-  return backendRequest<DeleteKnowledgeResponse>(
+  const userId = await libraryUserId();
+  const response = await backendRequest<DeleteKnowledgeResponse>(
     `/api/knowledge/${encodeURIComponent(memoryId)}`,
     {
       method: "DELETE",
     },
   );
+  if (await libraryUserId() === userId) {
+    libraryCache.update(userId, (items) => items.filter((item) => item.id !== memoryId));
+  }
+  return response;
 }
 
 type UpdateCustomTagsResponse = {
@@ -299,11 +320,18 @@ export async function updateKnowledgeCustomTags(
   memoryId: string,
   tags: string[],
 ): Promise<UpdateCustomTagsResponse> {
-  return backendRequest<UpdateCustomTagsResponse>(
+  const userId = await libraryUserId();
+  const response = await backendRequest<UpdateCustomTagsResponse>(
     `/api/knowledge/${encodeURIComponent(memoryId)}/tags`,
     {
       method: "PATCH",
       body: { tags },
     },
   );
+  if (await libraryUserId() === userId) {
+    libraryCache.update(userId, (items) => items.map((item) => item.id === memoryId
+      ? { ...item, custom_tags: response.custom_tags, updated_at: response.updated_at }
+      : item));
+  }
+  return response;
 }

@@ -6,6 +6,7 @@ import {
   Suspense,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useSearchParams } from "next/navigation";
@@ -46,7 +47,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { CollectionPicker } from "@/components/collections/collection-picker";
 import { CustomTagEditor } from "@/components/dashboard/custom-tag-editor";
-import { createSupabaseClient } from "@/lib/supabase/client";
 import {
   deleteKnowledgeItem,
   getKnowledgeItems,
@@ -246,6 +246,7 @@ function LibraryPageContent() {
     .get("source")
     ?.trim()
     .toLowerCase();
+  const libraryRevision = useRef(0);
   const [items, setItems] = useState<KnowledgeItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -258,77 +259,27 @@ function LibraryPageContent() {
 
   useEffect(() => {
     let mounted = true;
+    const revision = libraryRevision.current;
 
     async function loadKnowledgeItems() {
-      const supabase = createSupabaseClient();
-
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      const userId = session?.user.id;
-
-      const cacheKey = userId
-        ? `memora-library:${userId}`
-        : null;
-
       let hasCache = false;
-
-      if (cacheKey) {
-        try {
-          const cachedValue =
-            sessionStorage.getItem(cacheKey);
-
-          if (cachedValue) {
-            const cachedItems = JSON.parse(
-              cachedValue,
-            ) as KnowledgeItem[];
-
-            if (
-              mounted &&
-              Array.isArray(cachedItems)
-            ) {
-              setItems(cachedItems);
-              setIsLoading(false);
-              setIsRefreshing(true);
-              hasCache = true;
-            }
-          }
-        } catch {
-          sessionStorage.removeItem(cacheKey);
-        }
-      }
-
       try {
-        if (!hasCache) {
-          setIsLoading(true);
-        }
-
         setError(null);
-
-        const freshItems = await getKnowledgeItems();
-
-        if (!mounted) return;
-
-        setItems(freshItems);
-        setIsLoading(false);
-
-        if (cacheKey) {
-          sessionStorage.setItem(
-            cacheKey,
-            JSON.stringify(freshItems),
-          );
-        }
+        const freshItems = await getKnowledgeItems({
+          onCached(cachedItems) {
+            if (!mounted) return;
+            hasCache = true;
+            setItems(cachedItems);
+            setIsLoading(false);
+            setIsRefreshing(true);
+          },
+        });
+        if (mounted && libraryRevision.current === revision) setItems(freshItems);
       } catch (loadError) {
         if (!mounted) return;
-
-        if (!hasCache) {
-          setError(
-            loadError instanceof Error
-              ? loadError.message
-              : "Failed to load knowledge items",
-          );
-        }
+        setError(hasCache
+          ? "Showing your saved library. Updates could not be loaded; please refresh to try again."
+          : loadError instanceof Error ? loadError.message : "Failed to load knowledge items");
       } finally {
         if (mounted) {
           setIsLoading(false);
@@ -527,6 +478,7 @@ function LibraryPageContent() {
       return;
     }
 
+    libraryRevision.current++;
     const previousItems = items;
 
     try {
@@ -538,12 +490,10 @@ function LibraryPageContent() {
       );
 
       setItems(nextItems);
-      updateLibraryCaches(nextItems);
 
       await deleteKnowledgeItem(item.id);
     } catch (deleteError) {
       setItems(previousItems);
-      updateLibraryCaches(previousItems);
 
       setError(
         deleteError instanceof Error
@@ -556,6 +506,7 @@ function LibraryPageContent() {
   }
 
   function handleTagsChange(item: KnowledgeItem, customTags: string[]) {
+    libraryRevision.current++;
     const previousCustomTagKeys = new Set(
       (item.customTags ?? []).map((tag) => tag.toLowerCase()),
     );
@@ -574,7 +525,6 @@ function LibraryPageContent() {
           : current,
       );
 
-      updateLibraryCaches(nextItems);
       return nextItems;
     });
   }
@@ -896,7 +846,7 @@ function MemoryTile({
   return (
     <motion.article
       layout
-      initial={{ opacity: 0, y: 24, scale: 0.96 }}
+      initial={false}
       animate={{
         opacity: isDeleting ? 0.45 : 1,
         y: 0,
@@ -1279,31 +1229,6 @@ function EmptyMemoryCanvas() {
       </div>
     </motion.div>
   );
-}
-
-function updateLibraryCaches(
-  nextItems: KnowledgeItem[],
-) {
-  const cacheKeys: string[] = [];
-
-  for (
-    let index = 0;
-    index < sessionStorage.length;
-    index += 1
-  ) {
-    const key = sessionStorage.key(index);
-
-    if (key?.startsWith("memora-library:")) {
-      cacheKeys.push(key);
-    }
-  }
-
-  cacheKeys.forEach((key) => {
-    sessionStorage.setItem(
-      key,
-      JSON.stringify(nextItems),
-    );
-  });
 }
 
 function LibraryPageLoading() {

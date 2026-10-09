@@ -85,7 +85,14 @@ export default function InsightsPage() {
         setIsLoading(true);
         setError(null);
 
-        const data = await getKnowledgeItems();
+        const data = await getKnowledgeItems({
+          onCached(cachedItems) {
+            if (mounted) {
+              setItems(cachedItems);
+              setIsLoading(false);
+            }
+          },
+        });
 
         if (mounted) {
           setItems(data);
