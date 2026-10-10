@@ -1,28 +1,54 @@
-# Secrets
+# Secrets and local environment settings
 .env
-.env.local
-.env.production
-.env.development.local
-*.pem
-*.key
 .env.*
 !.env.example
-frontend/.env.local
-memora-python-backend/.env
+*.pem
+*.key
 
-# Python
+# Local documentation, reviews, reports, and design assets
+/docs/
+/security-reports/
+/reports/
+/assets/
+
+# Local agent and editor settings
+/.agents/
+/.codex/
+/.idea/
+/.vscode/
+
+# Python dependencies and caches
 .venv/
+venv/
 __pycache__/
 *.py[cod]
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
 *.egg-info/
 
-# Next.js
-frontend/node_modules/
-frontend/.next/
-frontend/out/
+# JavaScript dependencies and generated Next.js files
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+.vercel/
 
-# Build output
+# Build output, test reports, and temporary files
 dist/
 build/
+coverage/
+htmlcov/
+.coverage
+.coverage.*
+playwright-report/
+test-results/
+.tmp/
+.cache/
+*.log
+
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini
