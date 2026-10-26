@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from starlette.concurrency import run_in_threadpool
 
 from memora.models import User
 from memora.supabase import auth_client
@@ -15,7 +16,9 @@ async def current_user(
     if credentials is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Authorization header is missing")
     try:
-        response = auth_client().auth.get_user(credentials.credentials)
+        response = await run_in_threadpool(
+            auth_client().auth.get_user, credentials.credentials
+        )
     except Exception as exc:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid or expired token") from exc
     if response.user is None:

@@ -74,3 +74,22 @@ src/memora/
 ```
 
 The fetcher blocks private/local IP addresses to reduce server-side request forgery risk. The admin Supabase client is only used after the JWT user has been verified.
+
+## Search latency
+
+Search reuses up to 32,768 fuzzy token comparisons in a bounded in-process cache.
+Authentication and search database reads run off the async request loop so they
+can overlap with other requests. Results are still read fresh and scoped to the
+signed-in user.
+
+`SEARCH_SEMANTIC_TIMEOUT_SECONDS` defaults to `3` (valid range: greater than zero,
+up to 30). This budget covers query embedding and semantic retrieval; on timeout
+or provider failure, search returns the existing keyword/typo-ranked matches.
+Semantic-only matches may be absent in that fallback. The budget does not cover
+authentication, the initial library read, or local ranking. A database request
+already running in a worker thread may finish after the response falls back.
+
+A local synthetic 1,000-memory ranking benchmark improved from 3.36 seconds to
+0.24 seconds with the comparison cache. This measures ranking only, not deployed
+end-to-end latency. Search still reads the latest 1,000 memories for lexical
+matching; larger-library database indexing remains separate work.

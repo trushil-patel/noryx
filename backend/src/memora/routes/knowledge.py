@@ -1,12 +1,16 @@
-﻿import re
+import asyncio
+import re
 from collections import Counter
 from datetime import UTC, datetime
+from functools import lru_cache
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, status
+from starlette.concurrency import run_in_threadpool
 
 from memora.auth import CurrentUser
+from memora.config import get_settings
 from memora.models import CaptureRequest, CustomTagsUpdate
 from memora.services.ai import (
     embedding_text,
@@ -126,6 +130,7 @@ def edit_distance(first: str, second: str) -> int:
     return previous[-1]
 
 
+@lru_cache(maxsize=32768)
 def token_match_quality(query_term: str, candidate: str) -> float:
     if query_term == candidate:
         return 1.0
@@ -617,16 +622,15 @@ async def search(
     try:
         client = admin_client()
 
-        exact_items = (
+        exact_response = await run_in_threadpool(
             client.table("knowledge_items")
             .select(SELECT)
             .eq("user_id", user.id)
             .order("created_at", desc=True)
             .limit(1000)
-            .execute()
-            .data
-            or []
+            .execute
         )
+        exact_items = exact_response.data or []
 
         (
             semantic_query,
@@ -638,22 +642,21 @@ async def search(
         semantic_items: list[dict[str, object]] = []
 
         try:
-            query_embedding = await generate_query_embedding(semantic_query)
-
-            semantic_response = client.rpc(
-                "hybrid_search_knowledge_items",
-                {
-                    "query_text": query,
-                    "query_embedding": query_embedding,
-                    "match_user_id": user.id,
-                    "match_count": min(limit * 5, 100),
-                    "semantic_threshold": semantic_candidate_threshold(
-                        core_terms
-                    ),
-                },
-            ).execute()
-
-            semantic_items = semantic_response.data or []
+            async with asyncio.timeout(get_settings().search_semantic_timeout_seconds):
+                query_embedding = await generate_query_embedding(semantic_query)
+                semantic_response = await asyncio.to_thread(
+                    client.rpc(
+                        "hybrid_search_knowledge_items",
+                        {
+                            "query_text": query,
+                            "query_embedding": query_embedding,
+                            "match_user_id": user.id,
+                            "match_count": min(limit * 5, 100),
+                            "semantic_threshold": semantic_candidate_threshold(core_terms),
+                        },
+                    ).execute
+                )
+                semantic_items = semantic_response.data or []
 
         except Exception as semantic_exc:
             print(f"Semantic search failed; using exact ranking: {semantic_exc}")

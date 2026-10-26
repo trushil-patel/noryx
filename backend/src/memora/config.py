@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     gemini_api_key: str
     gemini_model: str = "gemini-2.5-flash"
     embedding_model: str = "gemini-embedding-001"
+    search_semantic_timeout_seconds: float = Field(default=3.0, gt=0, le=30)
     fetch_timeout_seconds: float = 10.0
     max_page_bytes: int = 5_000_000
     max_redirects: int = 5
