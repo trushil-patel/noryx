@@ -93,3 +93,13 @@ A local synthetic 1,000-memory ranking benchmark improved from 3.36 seconds to
 0.24 seconds with the comparison cache. This measures ranking only, not deployed
 end-to-end latency. Search still reads the latest 1,000 memories for lexical
 matching; larger-library database indexing remains separate work.
+
+The search page requests `stream=true` to receive newline-delimited JSON result
+sets from the same authenticated request. Keyword/typo matches are sent before
+query embedding starts; the final batch includes semantic matches using the
+existing timeout and ranking. This removes the AI wait from time to first keyword
+results without repeating the library read. Clients omitting `stream` retain the
+original JSON response. Interrupted enrichment preserves already displayed results.
+Production proxies must pass streaming responses through without buffering
+(`X-Accel-Buffering: no` is included). Actual latency still depends on authentication,
+database access, library size, and deployment buffering.

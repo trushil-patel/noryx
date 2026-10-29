@@ -71,8 +71,11 @@ export default function SearchPage() {
       setIsSearching(true);
       setError(null);
       setActivePlatform("all");
+      setResults([]);
+      setSearchedQuery(query);
+      setHasSearched(true);
 
-      const items = await searchKnowledgeItems(query);
+      const items = await searchKnowledgeItems(query, 20, setResults);
 
       setResults(items);
       setSearchedQuery(query);
@@ -211,7 +214,9 @@ export default function SearchPage() {
           <div className="mt-10 flex flex-wrap items-center justify-between gap-3">
             <p className="text-[13px] text-muted-foreground">
               {isSearching
-                ? `Searching for "${searchedQuery || q}"...`
+                ? results.length > 0
+                  ? `${filteredResults.length} results for "${searchedQuery}" · Finding related memories...`
+                  : `Searching for "${searchedQuery || q}"...`
                 : `${filteredResults.length} ${
                     filteredResults.length === 1
                       ? "result"
@@ -283,11 +288,11 @@ export default function SearchPage() {
           ) : null}
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            {filteredResults.map((item, index) => (
+            {filteredResults.map((item) => (
               <KnowledgeCard
                 key={item.id}
                 item={item}
-                index={index}
+                index={0}
               />
             ))}
           </div>

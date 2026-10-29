@@ -1,4 +1,5 @@
 import asyncio
+import json
 import re
 from collections import Counter
 from datetime import UTC, datetime
@@ -8,6 +9,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, status
 from starlette.concurrency import run_in_threadpool
+from starlette.responses import StreamingResponse
 
 from memora.auth import CurrentUser
 from memora.config import get_settings
@@ -598,7 +600,7 @@ async def complete_embedding_later(
             )
 
 
-@router.get("/search")
+@router.get("/search", response_model=None)
 async def search(
     user: CurrentUser,
     q: str = Query(
@@ -610,7 +612,8 @@ async def search(
         ge=1,
         le=50,
     ),
-) -> dict[str, object]:
+    stream: bool = False,
+) -> dict[str, object] | StreamingResponse:
     query = " ".join(q.strip().split())
 
     if not query:
@@ -639,42 +642,64 @@ async def search(
             expanded_terms,
         ) = build_search_plan(query, exact_items)
 
-        semantic_items: list[dict[str, object]] = []
+        def payload(items):
+            return {
+                "success": True,
+                "query": query,
+                "interpreted_query": " ".join(core_terms),
+                "items": items,
+            }
 
-        try:
-            async with asyncio.timeout(get_settings().search_semantic_timeout_seconds):
-                query_embedding = await generate_query_embedding(semantic_query)
-                semantic_response = await asyncio.to_thread(
-                    client.rpc(
-                        "hybrid_search_knowledge_items",
-                        {
-                            "query_text": query,
-                            "query_embedding": query_embedding,
-                            "match_user_id": user.id,
-                            "match_count": min(limit * 5, 100),
-                            "semantic_threshold": semantic_candidate_threshold(core_terms),
-                        },
-                    ).execute
-                )
-                semantic_items = semantic_response.data or []
+        async def batches():
+            if stream:
+                yield payload(rerank_search_results(
+                    exact_items, query_phrases, core_terms, expanded_terms, limit,
+                ))
+            semantic_items: list[dict[str, object]] = []
 
-        except Exception as semantic_exc:
-            print(f"Semantic search failed; using exact ranking: {semantic_exc}")
+            try:
+                async with asyncio.timeout(get_settings().search_semantic_timeout_seconds):
+                    query_embedding = await generate_query_embedding(semantic_query)
+                    semantic_response = await asyncio.to_thread(
+                        client.rpc(
+                            "hybrid_search_knowledge_items",
+                            {
+                                "query_text": query,
+                                "query_embedding": query_embedding,
+                                "match_user_id": user.id,
+                                "match_count": min(limit * 5, 100),
+                                "semantic_threshold": semantic_candidate_threshold(core_terms),
+                            },
+                        ).execute
+                    )
+                    semantic_items = semantic_response.data or []
 
-        items = rerank_search_results(
-            merge_search_items(exact_items, semantic_items),
-            query_phrases,
-            core_terms,
-            expanded_terms,
-            limit,
-        )
+            except Exception as semantic_exc:
+                print(f"Semantic search failed; using exact ranking: {semantic_exc}")
 
-        return {
-            "success": True,
-            "query": query,
-            "interpreted_query": " ".join(core_terms),
-            "items": items,
-        }
+            items = rerank_search_results(
+                merge_search_items(exact_items, semantic_items),
+                query_phrases,
+                core_terms,
+                expanded_terms,
+                limit,
+            )
+
+            yield payload(items)
+
+        if stream:
+            async def events():
+                async for batch in batches():
+                    yield json.dumps(batch) + "\n"
+
+            return StreamingResponse(
+                events(),
+                media_type="application/x-ndjson",
+                headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
+            )
+
+        async for batch in batches():
+            return batch
 
     except Exception as exc:
         raise HTTPException(

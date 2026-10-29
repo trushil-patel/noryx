@@ -61,3 +61,35 @@ async def test_search_keeps_semantic_matches(monkeypatch):
     result = await knowledge.search(User(id="owner"), "python", 20)
     assert result["items"] == [item]
     assert client.rpc.call_args.args[1]["match_user_id"] == "owner"
+
+@pytest.mark.asyncio
+async def test_stream_shows_keywords_before_embedding_finishes(monkeypatch):
+    import json
+
+    item = {"id": "one", "title": "Python development", "user_id": "owner"}
+    related = {"id": "two", "title": "Django framework", "similarity": 0.9}
+    client = MagicMock()
+    selection = client.table.return_value.select.return_value.eq.return_value
+    selection.order.return_value.limit.return_value.execute.return_value = SimpleNamespace(data=[item])
+    client.rpc.return_value.execute.return_value = SimpleNamespace(data=[related])
+    release = asyncio.Event()
+
+    async def embed(query):
+        await release.wait()
+        return [0.1]
+
+    monkeypatch.setattr(knowledge, "admin_client", lambda: client)
+    monkeypatch.setattr(knowledge, "generate_query_embedding", embed)
+    monkeypatch.setattr(
+        knowledge, "get_settings", lambda: SimpleNamespace(search_semantic_timeout_seconds=1)
+    )
+    response = await knowledge.search(User(id="owner"), "python", 20, stream=True)
+    batches = response.body_iterator
+    first = json.loads(await asyncio.wait_for(anext(batches), 0.5))
+    assert first["items"] == [item]
+    client.rpc.assert_not_called()
+    release.set()
+    final = json.loads(await asyncio.wait_for(anext(batches), 0.5))
+    assert {row["id"] for row in final["items"]} == {"one", "two"}
+    selection.order.return_value.limit.return_value.execute.assert_called_once()
+    await batches.aclose()

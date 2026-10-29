@@ -240,6 +240,7 @@ export async function getKnowledgeItems(options: {
 export async function searchKnowledgeItems(
   query: string,
   limit = 20,
+  onProgress?: (items: KnowledgeItem[]) => void,
 ): Promise<KnowledgeItem[]> {
   const normalizedQuery = query.trim();
 
@@ -251,9 +252,11 @@ export async function searchKnowledgeItems(
     q: normalizedQuery,
     limit: String(limit),
   });
+  if (onProgress) params.set("stream", "true");
 
   const data = await backendRequest<KnowledgeResponse>(
     `/api/knowledge/search?${params.toString()}`,
+    { onProgress: onProgress ? (data) => onProgress(data.items.map(normalizeKnowledgeItem)) : undefined },
   );
 
   return data.items.map(normalizeKnowledgeItem);

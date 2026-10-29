@@ -1,4 +1,5 @@
 import { createSupabaseClient } from "@/lib/supabase/client";
+import { readSearchStream } from "./search-stream";
 
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000";
@@ -10,7 +11,7 @@ type BackendRequestOptions = {
 
 export async function backendRequest<T>(
   path: string,
-  options: BackendRequestOptions = {}
+  options: BackendRequestOptions & { onProgress?: (data: T) => void } = {}
 ): Promise<T> {
   const supabase = createSupabaseClient();
 
@@ -35,6 +36,11 @@ export async function backendRequest<T>(
     },
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
+
+  if (response.ok && options.onProgress && response.body &&
+      response.headers.get("content-type")?.includes("application/x-ndjson")) {
+    return readSearchStream<T>(response.body, options.onProgress);
+  }
 
   const data = await response.json();
 
