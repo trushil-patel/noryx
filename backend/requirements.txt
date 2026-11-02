@@ -38,7 +38,7 @@ markdown-it-py==4.2.0
 mdurl==0.1.2
 # Editable install with no version control (memora-backend==2.0.0)
 -e .
-msgpack==1.2.1
+msgpack==1.2.3
 multidict==6.7.1
 packageurl-python==0.17.6
 packaging==26.2
